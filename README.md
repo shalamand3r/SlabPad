@@ -1,7 +1,7 @@
 # SlabPad
 ---
 
-## Disable the haptic "click" sensation when applying pressure on Apple's force touch trackpads found in MacBooks... almost as if you are pressing on a solid slab! 😜
+## Disable the haptic "click" sensation when applying pressure on the force touch trackpads found in MacBooks... making it feel like you're pressing on a solid slab! 😜
 ---
 
 <img src="https://github.com/shalamand3r/SlabPad/blob/main/SlabPad.png" width="360">
