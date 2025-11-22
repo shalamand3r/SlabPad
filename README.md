@@ -1,2 +1,2 @@
 # SlabPad
-## Disable ALL macOS Trackpad Haptics. Disables the haptic "click" sensation when pressing down.
+Disable the haptic "click" sensation when applying pressure on Apple's force touch trackpads... almost as if you are pressing on a solid slab. Lol.
