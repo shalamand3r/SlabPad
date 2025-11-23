@@ -8,4 +8,4 @@
 
 ---
 
-**SlabPad lives in your menu bar. The latest version is available on the [releases page](https://github.com/shalamand3r/SlabPad/releases) (duh). Toggle haptics by clicking the menu bar icon.**
+**SlabPad lives in your menu bar. The latest version is available on the [releases page](https://github.com/shalamand3r/SlabPad/releases) (duh)**
