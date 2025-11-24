@@ -4,7 +4,7 @@
 ###### Comparable to the "silent clicking" feature that was found in early MacBook models with force touch trackpads.
 ---
 
-<img src="https://github.com/shalamand3r/SlabPad/blob/main/SlabPad.png" width="360">
+<img src="https://github.com/shalamand3r/SlabPad/blob/main/SlabPad.png" width="350">
 
 ---
 
