@@ -1,4 +1,4 @@
-# SlabPad —— Silent Clicking
+# SlabPad — Silent Clicking
 ---
 ### Disable the haptic "click" produced by Apple's force touch trackpads found in MacBooks. 
 ###### Comparable to the "silent clicking" feature that was found in early MacBook models with force touch trackpads.
