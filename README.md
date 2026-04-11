@@ -1,6 +1,6 @@
-# SlabPad — Silent Clicking
+# SlabPad: Bring Back macOS Silent Clicking
 ---
-### Disable the haptic "click" produced by Apple's force touch trackpads found in MacBooks. 
+### Disable the haptic "click" produced by Apple's force touch trackpads found in most modern MacBooks (exluding the MacBook Neo).
 ###### Comparable to the "silent clicking" feature that was found in early MacBook models with force touch trackpads.
 
 ###### Note: This does not appear to work on external magic trackpads.
