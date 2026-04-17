@@ -11,7 +11,7 @@ Disable the haptic "click" produced by Apple's Force Touch trackpads found in mo
       <img src="https://github.com/shalamand3r/SlabPad/blob/main/SlabPad.png" width="300">
     </td>
     <td align="center">
-      <img src="https://github.com/shalamand3r/SlabPad/blob/main/Trackpad.png" width="300">
+      <img src="https://github.com/shalamand3r/SlabPad/blob/main/AppSS.png" width="300">
     </td>
   </tr>
 </table>
