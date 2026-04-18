@@ -24,8 +24,8 @@ Disable the haptic "click" produced by Apple's Force Touch trackpads found in mo
 
 ## Usage
 
-- **Left click** → Toggle trackpad haptics  
-- **Right click** → Open options
+- **Left click menu bar icon** → Open menu  
+- **Right click menu bar icon** → Instantly toggle haptics
 
 Download the latest version from **[Releases](https://github.com/shalamand3r/SlabPad/releases)**
 
