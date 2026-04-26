@@ -18,6 +18,7 @@ struct ContentView: View {
     @ObservedObject private var manager = SlabPadManager.shared
     @State private var showSettings = false
     @State private var showReleaseNotes = false
+    @State private var showPressurePlayground = false
     @State private var releaseNotesOpenedByHover = false
     @State private var hoverRestoreShowSettings = false
     @State private var hoverRestoreShowReleaseNotes = false
@@ -33,9 +34,11 @@ struct ContentView: View {
         case mainButton
         case settings
         case releaseNotes
+        case pressurePlayground
     }
     
     private var activePanel: Panel {
+        if showPressurePlayground { return .pressurePlayground }
         if showReleaseNotes { return .releaseNotes }
         if showSettings { return .settings }
         return .mainButton
@@ -86,17 +89,32 @@ struct ContentView: View {
         .onChange(of: showReleaseNotes) { _ in
             NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
         }
+        .onChange(of: showPressurePlayground) { _ in
+            NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
+        }
     }
 
     private var headerSection: some View {
         HStack(spacing: 6) {
-            Text("SlabPad")
-                .font(.system(.title3, design: .rounded))
-                .fontWeight(.bold)
+            Button(action: {
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
+                    showPressurePlayground.toggle()
+                }
+            }) {
+                Text("SlabPad")
+                    .font(.system(.title3, design: .rounded))
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+            }
+            .buttonStyle(PopButtonStyle())
+            
             Button(action: {
                 withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
                     showReleaseNotes.toggle()
-                    if showReleaseNotes { showSettings = false }
+                    if showReleaseNotes {
+                        showSettings = false
+                        showPressurePlayground = false
+                    }
                 }
                 releaseNotesOpenedByHover = false
                 manager.checkForUpdate()
@@ -104,13 +122,13 @@ struct ContentView: View {
             }) {
                 Text(titleVersionText)
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(showReleaseNotes ? .slabPadAccent : .secondary.opacity(0.6))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(
                         Capsule()
-                            .fill(Color.primary.opacity(0.06))
-                            .overlay(Capsule().stroke(Color.primary.opacity(0.1), lineWidth: 0.5))
+                            .fill(showReleaseNotes ? Color.slabPadAccent.opacity(0.15) : Color.primary.opacity(0.06))
+                            .overlay(Capsule().stroke(showReleaseNotes ? Color.slabPadAccent.opacity(0.2) : Color.primary.opacity(0.1), lineWidth: 0.5))
                     )
                     .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
             }
@@ -151,7 +169,10 @@ struct ContentView: View {
             Button(action: {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     showSettings.toggle()
-                    if showSettings { showReleaseNotes = false }
+                    if showSettings {
+                        showReleaseNotes = false
+                        showPressurePlayground = false
+                    }
                 }
             }) {
                 Image(systemName: "gearshape.fill")
@@ -215,6 +236,17 @@ struct ContentView: View {
                         perspective: 0.15
                     )
                     .allowsHitTesting(activePanel == .releaseNotes)
+
+                pressurePlaygroundSection
+                    .opacity(activePanel == .pressurePlayground ? 1 : 0)
+                    .scaleEffect(activePanel == .pressurePlayground ? 1.0 : 0.9)
+                    .rotation3DEffect(
+                        .degrees(activePanel == .pressurePlayground ? 0 : 90),
+                        axis: (x: 1, y: 0, z: 0),
+                        anchor: .center,
+                        perspective: 0.15
+                    )
+                    .allowsHitTesting(activePanel == .pressurePlayground)
             }
             .fixedSize(horizontal: false, vertical: true)
             .padding(.top, 4)
@@ -224,6 +256,8 @@ struct ContentView: View {
                     // sync icon with menubar state
                     Text(manager.invertClicks ? "Left-click" : "Right-click")
                     Image(systemName: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
+                        .opacity(0.7)
+                        .animation(.easeInOut(duration: 0.18), value: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
                     Text("to instantly toggle haptics")
                 }
                 
@@ -278,6 +312,34 @@ struct ContentView: View {
         .background(Color.primary.opacity(0.05))
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+        .modifier(FloatingPerspectiveModifier(cornerRadius: 16, maxTilt: 5, shineMaxOpacity: 0.11, shineTravel: 120, perspective: 0.18))
+        .padding(.horizontal, 20)
+        .layoutPriority(1)
+    }
+
+    private var pressurePlaygroundSection: some View {
+        VStack(spacing: 0) {
+            if #available(macOS 12.0, *) {
+                PressurePlayground(onExit: {
+                    withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
+                        showPressurePlayground = false
+                    }
+                })
+            } else {
+                Spacer()
+                Text("Pressure Playground requires macOS 12.0+")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                Spacer()
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.primary.opacity(0.05))
+        .cornerRadius(16)
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+        .modifier(FloatingPerspectiveModifier(cornerRadius: 16, maxTilt: 5, shineMaxOpacity: 0.11, shineTravel: 120, perspective: 0.18))
         .padding(.horizontal, 20)
         .layoutPriority(1)
     }
@@ -301,8 +363,9 @@ struct ContentView: View {
                     Text(titleLatest)
                         .opacity(shouldShowLatest ? 1 : 0)
                 }
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(.secondary)
+                .animation(.easeInOut(duration: 0.18), value: shouldShowLatest)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(.secondary)
                 Spacer(minLength: 8)
 
                 if let url = manager.latestReleaseURL, !shouldShowLatest {
@@ -358,6 +421,7 @@ struct ContentView: View {
         .background(Color.primary.opacity(0.05))
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+        .modifier(FloatingPerspectiveModifier(cornerRadius: 16, maxTilt: 5, shineMaxOpacity: 0.11, shineTravel: 120, perspective: 0.18))
         .padding(.horizontal, 20)
     }
 
@@ -413,6 +477,7 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .modifier(FloatingPerspectiveModifier())
+            .animation(.easeInOut(duration: 0.18), value: manager.isHapticsEnabled)
         }
         .buttonStyle(HapticButtonStyle())
         .padding(.horizontal, 20)
@@ -421,11 +486,12 @@ struct ContentView: View {
     @ViewBuilder
     private func buttonBackground(isEnabled: Bool) -> some View {
         if #available(macOS 13.0, *) {
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(isEnabled ? Color.red.gradient : Color.slabPadAccent.gradient)
+                .animation(.easeInOut(duration: 0.18), value: isEnabled)
         } else {
             let base = isEnabled ? Color.red : Color.slabPadAccent
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [base.opacity(0.9), base],
@@ -433,25 +499,7 @@ struct ContentView: View {
                         endPoint: .bottom
                     )
                 )
-        }
-    }
-}
-
-private struct HapticToggleButtonBackground: ViewModifier {
-    let isEnabled: Bool
-    
-    func body(content: Content) -> some View {
-        if #available(macOS 13.0, *) {
-            content.background(isEnabled ? Color.red.gradient : Color.slabPadAccent.gradient)
-        } else {
-            let base = isEnabled ? Color.red : Color.slabPadAccent
-            content.background(
-                LinearGradient(
-                    colors: [base.opacity(0.9), base],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
+                .animation(.easeInOut(duration: 0.18), value: isEnabled)
         }
     }
 }
@@ -495,7 +543,7 @@ private struct ReleaseNotesMarkdownView: View {
         Group {
             if let markdown, !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 if #available(macOS 12.0, *) {
-                    if let attributed = try? AttributedString(markdown: markdown) {
+                    if let attributed = try? AttributedString(markdown: markdown, options: .init(interpretedSyntax: .full)) {
                         Text(attributed)
                             .textSelection(.enabled)
                     } else {
@@ -548,7 +596,7 @@ private struct ChangelogBulletsView: View {
                             .padding(.top, 1)
                         Group {
                             if #available(macOS 12.0, *) {
-                                if let attributed = try? AttributedString(markdown: bullet) {
+                                if let attributed = try? AttributedString(markdown: bullet, options: .init(interpretedSyntax: .full)) {
                                     Text(attributed)
                                 } else {
                                     Text(bullet)
@@ -622,66 +670,28 @@ struct VisualEffectView: NSViewRepresentable {
 }
 
 #if DEBUG
-private struct SlabPadPreviewHost: View {
-    let showSettings: Bool
-    let showUpdate: Bool
-    let showReleaseNotes: Bool
-    
-    var body: some View {
-        ContentView(initialShowSettings: showSettings, initialShowReleaseNotes: showReleaseNotes)
-            .onAppear {
-                if showUpdate {
-                    let manager = SlabPadManager.shared
-                    manager.latestReleaseTag = "999.0"
-                    manager.latestReleaseURL = URL(string: "https://github.com/shalamand3r/SlabPad/releases")
-                    manager.latestReleaseNotesMarkdown = """
-                    ## What's new
-                    - this is a fake preview release note
-                    - **bold** and `code` should render on macOS 12+
-
-                    ### Details
-                    - more stuff
-                    - more stuff
-                    """
-                    manager.hasUpdateAvailable = true
-                }
-                
-                let manager = SlabPadManager.shared
-                manager.currentReleaseTag = "1.5"
-                manager.currentReleaseNotesMarkdown = """
-                ### Requires macOS 13.5 Ventura or later
-                #### Use [SlabPad 1.2](https://github.com/shalamand3r/SlabPad/releases/tag/1.2) for macOS versions 11.0 to 13.4.1
-                ---
-                ### Follow these instructions to open SlabPad after downloading:
-
-                - **macOS 15 Sequoia or later:** Open Privacy & Security in System Settings and click \"open anyway\"
-                - **macOS 14 Sonoma and below:** Control+click SlabPad and click open
-                ---
-                ### Changelog:
-                - Synced icon state throughout menu
-                - Project now open source
-                """
-            }
-    }
-}
-
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        Group {
-            SlabPadPreviewHost(showSettings: true, showUpdate: false, showReleaseNotes: false)
-                .previewDisplayName("Settings")
-            
-            SlabPadPreviewHost(showSettings: false, showUpdate: true, showReleaseNotes: false)
-                .previewDisplayName("Big Button + Update")
-            
-            SlabPadPreviewHost(showSettings: false, showUpdate: true, showReleaseNotes: true)
-                .previewDisplayName("Release Notes")
-        }
+        ContentView()
     }
 }
 #endif
 
+private struct ViewSizePreferenceKey: PreferenceKey {
+    static var defaultValue: CGSize = .zero
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        value = nextValue()
+    }
+}
+
 private struct FloatingPerspectiveModifier: ViewModifier {
+    var cornerRadius: CGFloat = 12
+    var maxTilt: Double = 10
+    var shineMaxOpacity: Double = 0.14
+    var shineTravel: CGFloat = 150
+    var perspective: CGFloat = 0.2
+
+    @State private var viewSize: CGSize = .zero
     @State private var rotation: (x: Double, y: Double) = (0, 0)
     @State private var shineOffset: CGPoint = .zero
     @State private var shineOpacity: Double = 0
@@ -691,46 +701,56 @@ private struct FloatingPerspectiveModifier: ViewModifier {
             content
                 .overlay(
                     GeometryReader { geo in
-                        // shiny
-                        LinearGradient(
-                            colors: [
-                                .white.opacity(0),
-                                .white.opacity(shineOpacity),
-                                .white.opacity(0)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                        .scaleEffect(2.5)
-                        .offset(x: shineOffset.x, y: shineOffset.y)
-                        .blendMode(.screen)
-                        .allowsHitTesting(false)
+                        ZStack {
+                            // shiny
+                            LinearGradient(
+                                colors: [
+                                    .white.opacity(0),
+                                    .white.opacity(shineOpacity),
+                                    .white.opacity(0)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            .scaleEffect(2.5)
+                            .offset(x: shineOffset.x, y: shineOffset.y)
+                            .blendMode(.screen)
+                            .allowsHitTesting(false)
+
+                            Color.clear
+                                .preference(key: ViewSizePreferenceKey.self, value: geo.size)
+                        }
                     }
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 )
                 .rotation3DEffect(
                     .degrees(rotation.x),
                     axis: (x: 1, y: 0, z: 0),
                     anchor: .center,
-                    perspective: 0.2
+                    perspective: perspective
                 )
                 .rotation3DEffect(
                     .degrees(rotation.y),
                     axis: (x: 0, y: 1, z: 0),
                     anchor: .center,
-                    perspective: 0.2
+                    perspective: perspective
                 )
+                .onPreferenceChange(ViewSizePreferenceKey.self) { newSize in
+                    viewSize = newSize
+                }
                 .onContinuousHover { phase in
                     switch phase {
                     case .active(let location):
-                        let x = (location.x / 260) - 0.5
-                        let y = (location.y / 160) - 0.5
+                        let w = max(viewSize.width, 1)
+                        let h = max(viewSize.height, 1)
+                        let x = (location.x / w) - 0.5
+                        let y = (location.y / h) - 0.5
                         
                         withAnimation(.interactiveSpring()) {
-                            rotation = (x: Double(y * -10), y: Double(x * 10))
+                            rotation = (x: Double(y * -maxTilt), y: Double(x * maxTilt))
                             // move shine in response to cursor :D
-                            shineOffset = CGPoint(x: x * 150, y: y * 150)
-                            shineOpacity = 0.14
+                            shineOffset = CGPoint(x: x * shineTravel, y: y * shineTravel)
+                            shineOpacity = shineMaxOpacity
                         }
                     case .ended:
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
