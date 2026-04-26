@@ -15,7 +15,6 @@ private extension Color {
 
 struct ContentView: View {
     @ObservedObject private var manager = SlabPadManager.shared
-    @State private var titleScale: CGFloat = 1
     @State private var showSettings = false
     @State private var isHoveringUpdateBadge = false
     @State private var updatePulse = false
@@ -54,9 +53,6 @@ struct ContentView: View {
         .frame(width: 300, height: 300)
         .padding(.bottom, 20)
         .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow))
-        .onAppear {
-            triggerClickAnimation()
-        }
     }
 
     private var headerSection: some View {
@@ -64,11 +60,17 @@ struct ContentView: View {
             Text("SlabPad")
                 .font(.system(.title3, design: .rounded))
                 .fontWeight(.bold)
-                .scaleEffect(titleScale)
             Text(titleVersionText)
-                .font(.system(.title3, design: .monospaced))
-                .fontWeight(.bold)
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .foregroundColor(.secondary)
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(
+                    Capsule()
+                        .fill(Color.primary.opacity(0.06))
+                        .overlay(Capsule().stroke(Color.primary.opacity(0.1), lineWidth: 0.5))
+                )
+                .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
             Spacer(minLength: 8)
             if manager.hasUpdateAvailable, let updateURL = manager.latestReleaseURL {
                 Button {
@@ -226,22 +228,14 @@ struct ContentView: View {
         .padding(.horizontal, 20)
         .layoutPriority(1)
     }
-
-    private func triggerClickAnimation() {
-        // clean spring bounce from slightly smaller scale
-        titleScale = 0.92
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.45)) {
-            titleScale = 1.0
-        }
-    }
     
     @ViewBuilder
     private func buttonBackground(isEnabled: Bool) -> some View {
         if #available(macOS 13.0, *) {
             RoundedRectangle(cornerRadius: 12)
-                .fill(isEnabled ? Color.red.gradient : Color.blue.gradient)
+                .fill(isEnabled ? Color.red.gradient : Color.slabPadAccent.gradient)
         } else {
-            let base = isEnabled ? Color.red : Color.blue
+            let base = isEnabled ? Color.red : Color.slabPadAccent
             RoundedRectangle(cornerRadius: 12)
                 .fill(
                     LinearGradient(
@@ -259,9 +253,9 @@ private struct HapticToggleButtonBackground: ViewModifier {
     
     func body(content: Content) -> some View {
         if #available(macOS 13.0, *) {
-            content.background(isEnabled ? Color.red.gradient : Color.blue.gradient)
+            content.background(isEnabled ? Color.red.gradient : Color.slabPadAccent.gradient)
         } else {
-            let base = isEnabled ? Color.red : Color.blue
+            let base = isEnabled ? Color.red : Color.slabPadAccent
             content.background(
                 LinearGradient(
                     colors: [base.opacity(0.9), base],
