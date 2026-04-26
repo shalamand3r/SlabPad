@@ -2,90 +2,165 @@
 // main ui for the menubar popover
 
 import SwiftUI
+import Combine
+
+private extension Color {
+    static var slabPadAccent: Color {
+        if #available(macOS 12.0, *) {
+            return Color(nsColor: NSColor.controlAccentColor)
+        }
+        return Color.accentColor
+    }
+}
 
 struct ContentView: View {
     @ObservedObject private var manager = SlabPadManager.shared
     @State private var titleScale: CGFloat = 1
+    @State private var showSettings = false
+    @State private var isHoveringUpdateBadge = false
+    @State private var updatePulse = false
+    
+    init(initialShowSettings: Bool = false) {
+        _showSettings = State(initialValue: initialShowSettings)
+    }
+
+    private var launchAtLoginBinding: Binding<Bool> {
+        Binding(
+            get: { manager.launchAtLogin },
+            set: { manager.setLaunchAtLogin($0) }
+        )
+    }
+    
+    private var appVersionText: String {
+        let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
+        return "v" + (short ?? "?")
+    }
+    
+    private var latestVersionText: String {
+        guard let latestTag = manager.latestReleaseTag else { return appVersionText }
+        return "v\(latestTag)"
+    }
+    
+    private var titleVersionText: String {
+        guard manager.hasUpdateAvailable, isHoveringUpdateBadge else { return appVersionText }
+        return "\(appVersionText) → \(latestVersionText)"
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             headerSection
             mainInterface
         }
+        .frame(width: 300, height: 300)
         .padding(.bottom, 20)
         .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow))
-        .onReceive(NotificationCenter.default.publisher(for: NSPopover.willShowNotification)) { _ in
-            triggerClickAnimation()
-        }
         .onAppear {
             triggerClickAnimation()
         }
     }
 
     private var headerSection: some View {
-        HStack {
+        HStack(spacing: 6) {
             Text("SlabPad")
                 .font(.system(.title3, design: .rounded))
                 .fontWeight(.bold)
                 .scaleEffect(titleScale)
-            Spacer()
-            Text(versionLabel)
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                .opacity(0.4)
+            Text(titleVersionText)
+                .font(.system(.title3, design: .monospaced))
+                .fontWeight(.bold)
+                .foregroundColor(.secondary)
+            Spacer(minLength: 8)
+            if manager.hasUpdateAvailable, let updateURL = manager.latestReleaseURL {
+                Button {
+                    NSWorkspace.shared.open(updateURL)
+                } label: {
+                    Image(systemName: "arrow.down.circle.fill")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.green)
+                        .opacity(updatePulse ? 0.55 : 1.0)
+                }
+                .help("New version available!")
+                .buttonStyle(PopButtonStyle())
+                .onHover { hovering in
+                    isHoveringUpdateBadge = hovering
+                }
+            }
+            Button(action: {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    showSettings.toggle()
+                }
+            }) {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(showSettings ? .slabPadAccent : .secondary.opacity(0.6))
+                    .frame(width: 28, height: 28)
+                    .background(showSettings ? Color.slabPadAccent.opacity(0.15) : Color.clear)
+                    .cornerRadius(8)
+            }
+            .buttonStyle(PopButtonStyle())
         }
         .padding(.horizontal, 20)
         .padding(.top, 20)
         .padding(.bottom, 10)
+        .layoutPriority(1)
+        .onChange(of: manager.hasUpdateAvailable) { hasUpdateAvailable in
+            if hasUpdateAvailable {
+                updatePulse = true
+            } else {
+                updatePulse = false
+            }
+        }
+        .onAppear {
+            updatePulse = manager.hasUpdateAvailable
+        }
+        .modifier(UpdatePulseDriver(hasUpdateAvailable: manager.hasUpdateAvailable, updatePulse: $updatePulse))
     }
 
     private var mainInterface: some View {
         VStack(spacing: 0) {
-            VStack(alignment: .leading, spacing: 14) {
-                Label("Options", systemImage: "gearshape.fill")
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(.secondary)
-                
-                Divider().opacity(0.2)
+            ZStack {
+                settingsSection
+                    .opacity(showSettings ? 1 : 0)
+                    .scaleEffect(showSettings ? 1.0 : 0.9)
+                    .rotation3DEffect(
+                        .degrees(showSettings ? 0 : -90),
+                        axis: (x: 1, y: 0, z: 0),
+                        anchor: .center,
+                        perspective: 0.15
+                    )
+                    .allowsHitTesting(showSettings)
 
-                Toggle("Launch at Login", isOn: Binding(
-                    get: { manager.launchAtLogin },
-                    set: { manager.setLaunchAtLogin($0) }
-                ))
-                .toggleStyle(.checkbox)
-                
-                Toggle("Disable Haptics on Launch", isOn: $manager.disableOnLaunch)
-                    .toggleStyle(.checkbox)
-                
-                Toggle("Re-enable Haptics on Quit", isOn: $manager.reEnableOnQuit)
-                    .toggleStyle(.checkbox)
+                Button(action: {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                        manager.toggleHapticsEnabled()
+                    }
+                }) {
+                    ZStack {
+                        buttonBackground(isEnabled: manager.isHapticsEnabled)
+                        HStack {
+                            Image(systemName: "power")
+                            Text(manager.isHapticsEnabled ? "DISABLE HAPTICS" : "ENABLE HAPTICS")
+                        }
+                        .font(.headline)
+                        .foregroundColor(.white)
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                }
+                .buttonStyle(HapticButtonStyle())
+                .padding(.horizontal, 20)
+                .opacity(showSettings ? 0 : 1)
+                .scaleEffect(showSettings ? 0.9 : 1.0)
+                .rotation3DEffect(
+                    .degrees(showSettings ? 90 : 0),
+                    axis: (x: 1, y: 0, z: 0),
+                    anchor: .center,
+                    perspective: 0.15
+                )
+                .allowsHitTesting(!showSettings)
+            }
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.top, 4)
 
-                Toggle("Invert Menu Bar Clicks", isOn: $manager.invertClicks)
-                    .toggleStyle(.checkbox)
-            }
-            .font(.system(size: 12, weight: .medium))
-            .padding(15)
-            .background(Color.primary.opacity(0.04))
-            .cornerRadius(16)
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
-            .padding(.horizontal, 20)
-            
-            Button(action: {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                    manager.toggleHapticsEnabled()
-                }
-            }) {
-                HStack {
-                    Image(systemName: "power")
-                    Text(manager.isHapticsEnabled ? "DISABLE HAPTICS" : "ENABLE HAPTICS")
-                }
-                .font(.headline).frame(maxWidth: .infinity).frame(height: 44)
-                .background(manager.isHapticsEnabled ? Color.red.gradient : Color.blue.gradient)
-                .foregroundColor(.white).cornerRadius(12)
-            }
-            .buttonStyle(HapticButtonStyle())
-            .padding(.horizontal, 20)
-            .padding(.top, 16)
-            
             HStack {
                 HStack(spacing: 4) {
                     // sync icon with menubar state
@@ -96,32 +171,101 @@ struct ContentView: View {
                 
                 Text("•")
                 
-                Button("Quit") { NSApplication.shared.terminate(nil) }
-                    .buttonStyle(.plain)
-                    .underline()
+                Button(action: { NSApplication.shared.terminate(nil) }) {
+                    Text("Quit")
+                        .underline()
+                }
+                .buttonStyle(PopButtonStyle())
             }
             .font(.system(size: 10))
             .foregroundColor(.secondary)
             .padding(.horizontal, 20)
-            .padding(.top, 12)
+            .padding(.top, 14)
         }
+        .clipped()
+        .animation(.spring(response: 0.55, dampingFraction: 0.82), value: showSettings)
     }
+    
+    private var settingsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            SettingsRow(
+                title: "Launch at Login",
+                isOn: manager.supportsLaunchAtLogin ? launchAtLoginBinding : .constant(false),
+                isDisabled: !manager.supportsLaunchAtLogin
+            )
 
-    private var versionLabel: String {
-        let version = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-        return version.map { "v\($0)" } ?? ""
+            Divider().opacity(0.2)
+
+            SettingsRow(
+                title: "Disable Haptics on Launch",
+                isOn: $manager.disableOnLaunch
+            )
+
+            Divider().opacity(0.2)
+
+            SettingsRow(
+                title: "Re-enable Haptics on Quit",
+                isOn: $manager.reEnableOnQuit
+            )
+
+            Divider().opacity(0.2)
+
+            SettingsRow(
+                title: "Invert Menu Bar Clicks",
+                isOn: $manager.invertClicks
+            )
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity)
+        .background(Color.primary.opacity(0.05))
+        .cornerRadius(16)
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+        .padding(.horizontal, 20)
+        .layoutPriority(1)
     }
 
     private func triggerClickAnimation() {
-        // scale bounce animation
-        titleScale = 1.0
-        withAnimation(.spring(response: 0.1, dampingFraction: 0.5)) {
-            titleScale = 0.92
+        // clean spring bounce from slightly smaller scale
+        titleScale = 0.92
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.45)) {
+            titleScale = 1.0
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.4)) {
-                titleScale = 1.0
-            }
+    }
+    
+    @ViewBuilder
+    private func buttonBackground(isEnabled: Bool) -> some View {
+        if #available(macOS 13.0, *) {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(isEnabled ? Color.red.gradient : Color.blue.gradient)
+        } else {
+            let base = isEnabled ? Color.red : Color.blue
+            RoundedRectangle(cornerRadius: 12)
+                .fill(
+                    LinearGradient(
+                        colors: [base.opacity(0.9), base],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                )
+        }
+    }
+}
+
+private struct HapticToggleButtonBackground: ViewModifier {
+    let isEnabled: Bool
+    
+    func body(content: Content) -> some View {
+        if #available(macOS 13.0, *) {
+            content.background(isEnabled ? Color.red.gradient : Color.blue.gradient)
+        } else {
+            let base = isEnabled ? Color.red : Color.blue
+            content.background(
+                LinearGradient(
+                    colors: [base.opacity(0.9), base],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+            )
         }
     }
 }
@@ -129,9 +273,72 @@ struct ContentView: View {
 struct HapticButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.96 : 1.0)
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
             .opacity(configuration.isPressed ? 0.9 : 1.0)
-            .animation(.interactiveSpring(), value: configuration.isPressed)
+            .animation(.spring(response: 0.25, dampingFraction: 0.55), value: configuration.isPressed)
+    }
+}
+
+struct PopButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? 0.9 : 1.0)
+            .animation(.spring(response: 0.25, dampingFraction: 0.5), value: configuration.isPressed)
+    }
+}
+
+	private struct SettingsRow: View {
+	    let title: String
+	    @Binding var isOn: Bool
+	    var isDisabled: Bool = false
+
+	    var body: some View {
+	        HStack(alignment: .center) {
+	            Text(title).font(.system(size: 13, weight: .semibold))
+	            Spacer(minLength: 12)
+	            Toggle("", isOn: $isOn).toggleStyle(.switch).labelsHidden()
+	        }
+	        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.6 : 1.0)
+    }
+}
+
+private struct UpdatePulseDriver: ViewModifier {
+    let hasUpdateAvailable: Bool
+    @Binding var updatePulse: Bool
+    
+    func body(content: Content) -> some View {
+        if #available(macOS 12.0, *) {
+            content.task(id: hasUpdateAvailable) {
+                guard hasUpdateAvailable else {
+                    updatePulse = false
+                    return
+                }
+
+                while !Task.isCancelled && hasUpdateAvailable {
+                    try? await Task.sleep(nanoseconds: 1_450_000_000)
+                    guard hasUpdateAvailable, !Task.isCancelled else { break }
+                    await MainActor.run {
+                        withAnimation(.easeInOut(duration: 1.1)) {
+                            updatePulse.toggle()
+                        }
+                    }
+                }
+            }
+        } else {
+            content.onReceive(
+                Timer.publish(every: 1.45, on: .main, in: .common).autoconnect()
+            ) { _ in
+                guard hasUpdateAvailable else {
+                    if updatePulse { updatePulse = false }
+                    return
+                }
+                
+                withAnimation(.easeInOut(duration: 1.1)) {
+                    updatePulse.toggle()
+                }
+            }
+        }
     }
 }
 
@@ -150,3 +357,34 @@ struct VisualEffectView: NSViewRepresentable {
         nsView.blendingMode = blendingMode
     }
 }
+
+#if DEBUG
+private struct SlabPadPreviewHost: View {
+    let showSettings: Bool
+    let showUpdate: Bool
+    
+    var body: some View {
+        ContentView(initialShowSettings: showSettings)
+            .onAppear {
+                if showUpdate {
+                    let manager = SlabPadManager.shared
+                    manager.latestReleaseTag = "999.0"
+                    manager.latestReleaseURL = URL(string: "https://github.com/shalamand3r/SlabPad/releases")
+                    manager.hasUpdateAvailable = true
+                }
+            }
+    }
+}
+
+struct ContentView_Previews: PreviewProvider {
+    static var previews: some View {
+        Group {
+            SlabPadPreviewHost(showSettings: true, showUpdate: false)
+                .previewDisplayName("Settings")
+            
+            SlabPadPreviewHost(showSettings: false, showUpdate: true)
+                .previewDisplayName("Big Button + Update")
+        }
+    }
+}
+#endif
