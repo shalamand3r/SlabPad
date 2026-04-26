@@ -32,10 +32,12 @@ private struct SemVer: Comparable {
 private struct GitHubReleaseResponse: Decodable, Sendable {
     let tagName: String
     let htmlURL: URL
+    let body: String
 
     enum CodingKeys: String, CodingKey {
         case tagName = "tag_name"
         case htmlURL = "html_url"
+        case body = "body"
     }
 }
 
@@ -65,6 +67,9 @@ final class SlabPadManager: ObservableObject {
     @Published var hasUpdateAvailable: Bool = false
     @Published var latestReleaseURL: URL?
     @Published var latestReleaseTag: String?
+    @Published var latestReleaseNotesMarkdown: String?
+    @Published var currentReleaseTag: String?
+    @Published var currentReleaseNotesMarkdown: String?
 
     var supportsLaunchAtLogin: Bool {
         if #available(macOS 13.0, *) {
@@ -84,6 +89,7 @@ final class SlabPadManager: ObservableObject {
 
         // push initial state to system
         applyHapticsStateToSystem()
+        fetchCurrentReleaseNotes()
         checkForUpdate()
     }
     
@@ -141,9 +147,43 @@ final class SlabPadManager: ObservableObject {
                 await MainActor.run {
                     self.latestReleaseURL = release.htmlURL
                     self.latestReleaseTag = release.tagName
+                    self.latestReleaseNotesMarkdown = release.body
                     self.hasUpdateAvailable = isUpdateAvailable
                 }
             } catch {
+            }
+        }
+    }
+    
+    func fetchCurrentReleaseNotes() {
+        let raw = currentVersionString.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else { return }
+        
+        let candidateTags = ["v\(raw)", raw]
+        
+        Task { @MainActor in
+            for tag in candidateTags {
+                guard let url = URL(string: "https://api.github.com/repos/shalamand3r/SlabPad/releases/tags/\(tag)") else {
+                    continue
+                }
+                
+                var request = URLRequest(url: url)
+                request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+                request.setValue("SlabPad", forHTTPHeaderField: "User-Agent")
+                
+                do {
+                    let (data, response) = try await URLSession.shared.data(for: request)
+                    if let http = response as? HTTPURLResponse, http.statusCode == 404 {
+                        continue
+                    }
+                    let release = try JSONDecoder().decode(GitHubReleaseResponse.self, from: data)
+                    await MainActor.run {
+                        self.currentReleaseTag = release.tagName
+                        self.currentReleaseNotesMarkdown = release.body
+                    }
+                    return
+                } catch {
+                }
             }
         }
     }

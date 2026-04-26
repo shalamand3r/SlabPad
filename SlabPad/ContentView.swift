@@ -3,6 +3,7 @@
 
 import SwiftUI
 import Combine
+import Foundation
 
 private extension Color {
     static var slabPadAccent: Color {
@@ -16,11 +17,25 @@ private extension Color {
 struct ContentView: View {
     @ObservedObject private var manager = SlabPadManager.shared
     @State private var showSettings = false
+    @State private var showReleaseNotes = false
     @State private var isHoveringUpdateBadge = false
     @State private var updatePulse = false
     
-    init(initialShowSettings: Bool = false) {
+    init(initialShowSettings: Bool = false, initialShowReleaseNotes: Bool = false) {
         _showSettings = State(initialValue: initialShowSettings)
+        _showReleaseNotes = State(initialValue: initialShowReleaseNotes)
+    }
+    
+    private enum Panel: Hashable {
+        case mainButton
+        case settings
+        case releaseNotes
+    }
+    
+    private var activePanel: Panel {
+        if showReleaseNotes { return .releaseNotes }
+        if showSettings { return .settings }
+        return .mainButton
     }
 
     private var launchAtLoginBinding: Binding<Bool> {
@@ -57,6 +72,9 @@ struct ContentView: View {
         .onChange(of: showSettings) { _ in
             NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
         }
+        .onChange(of: showReleaseNotes) { _ in
+            NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
+        }
     }
 
     private var headerSection: some View {
@@ -64,17 +82,27 @@ struct ContentView: View {
             Text("SlabPad")
                 .font(.system(.title3, design: .rounded))
                 .fontWeight(.bold)
-            Text(titleVersionText)
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                .foregroundColor(.secondary)
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(
-                    Capsule()
-                        .fill(Color.primary.opacity(0.06))
-                        .overlay(Capsule().stroke(Color.primary.opacity(0.1), lineWidth: 0.5))
-                )
-                .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+            Button(action: {
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
+                    showReleaseNotes.toggle()
+                    if showReleaseNotes { showSettings = false }
+                }
+                manager.checkForUpdate()
+                manager.fetchCurrentReleaseNotes()
+            }) {
+                Text(titleVersionText)
+                    .font(.system(size: 10, weight: .bold, design: .monospaced))
+                    .foregroundColor(.secondary)
+                    .padding(.horizontal, 6)
+                    .padding(.vertical, 2)
+                    .background(
+                        Capsule()
+                            .fill(Color.primary.opacity(0.06))
+                            .overlay(Capsule().stroke(Color.primary.opacity(0.1), lineWidth: 0.5))
+                    )
+                    .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+            }
+            .buttonStyle(PopButtonStyle())
             Spacer(minLength: 8)
             if manager.hasUpdateAvailable, let updateURL = manager.latestReleaseURL {
                 Button {
@@ -94,6 +122,7 @@ struct ContentView: View {
             Button(action: {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     showSettings.toggle()
+                    if showSettings { showReleaseNotes = false }
                 }
             }) {
                 Image(systemName: "gearshape.fill")
@@ -126,46 +155,37 @@ struct ContentView: View {
         VStack(spacing: 0) {
             ZStack {
                 settingsSection
-                    .opacity(showSettings ? 1 : 0)
-                    .scaleEffect(showSettings ? 1.0 : 0.9)
+                    .opacity(activePanel == .settings ? 1 : 0)
+                    .scaleEffect(activePanel == .settings ? 1.0 : 0.9)
                     .rotation3DEffect(
-                        .degrees(showSettings ? 0 : -90),
+                        .degrees(activePanel == .settings ? 0 : -90),
                         axis: (x: 1, y: 0, z: 0),
                         anchor: .center,
                         perspective: 0.15
                     )
-                    .allowsHitTesting(showSettings)
+                    .allowsHitTesting(activePanel == .settings)
 
-                Button(action: {
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
-                        manager.toggleHapticsEnabled()
-                    }
-                }) {
-                    ZStack {
-                        buttonBackground(isEnabled: manager.isHapticsEnabled)
-                            .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
-                        
-                        HStack {
-                            Image(systemName: "power")
-                            Text(manager.isHapticsEnabled ? "DISABLE HAPTICS" : "ENABLE HAPTICS")
-                        }
-                        .font(.headline)
-                        .foregroundColor(.white)
-                    }
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .modifier(FloatingPerspectiveModifier())
-                }
-                .buttonStyle(HapticButtonStyle())
-                .padding(.horizontal, 20)
-                .opacity(showSettings ? 0 : 1)
-                .scaleEffect(showSettings ? 0.9 : 1.0)
+                mainButtonSection
+                .opacity(activePanel == .mainButton ? 1 : 0)
+                .scaleEffect(activePanel == .mainButton ? 1.0 : 0.9)
                 .rotation3DEffect(
-                    .degrees(showSettings ? 90 : 0),
+                    .degrees(activePanel == .mainButton ? 0 : 90),
                     axis: (x: 1, y: 0, z: 0),
                     anchor: .center,
                     perspective: 0.15
                 )
-                .allowsHitTesting(!showSettings)
+                .allowsHitTesting(activePanel == .mainButton)
+                
+                releaseNotesSection
+                    .opacity(activePanel == .releaseNotes ? 1 : 0)
+                    .scaleEffect(activePanel == .releaseNotes ? 1.0 : 0.9)
+                    .rotation3DEffect(
+                        .degrees(activePanel == .releaseNotes ? 0 : 90),
+                        axis: (x: 1, y: 0, z: 0),
+                        anchor: .center,
+                        perspective: 0.15
+                    )
+                    .allowsHitTesting(activePanel == .releaseNotes)
             }
             .fixedSize(horizontal: false, vertical: true)
             .padding(.top, 4)
@@ -192,7 +212,7 @@ struct ContentView: View {
             .padding(.top, 14)
         }
         .clipped()
-        .animation(.spring(response: 0.55, dampingFraction: 0.82), value: showSettings)
+        .animation(.spring(response: 0.55, dampingFraction: 0.82), value: activePanel)
     }
     
     private var settingsSection: some View {
@@ -231,6 +251,93 @@ struct ContentView: View {
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
         .padding(.horizontal, 20)
         .layoutPriority(1)
+    }
+
+    private var releaseNotesSection: some View {
+        let shouldShowLatest = manager.hasUpdateAvailable && isHoveringUpdateBadge
+        let shownTag = shouldShowLatest ? manager.latestReleaseTag : (manager.currentReleaseTag ?? manager.currentVersionString)
+        let shownMarkdown = shouldShowLatest ? manager.latestReleaseNotesMarkdown : manager.currentReleaseNotesMarkdown
+
+        return VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 8) {
+                Text("Release Notes")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.secondary)
+                Spacer(minLength: 8)
+
+                if let url = manager.latestReleaseURL {
+                    Button {
+                        NSWorkspace.shared.open(url)
+                    } label: {
+                        Image(systemName: "safari")
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.secondary.opacity(0.7))
+                    }
+                    .buttonStyle(PopButtonStyle())
+                    .help("Open on GitHub")
+                }
+
+                Button {
+                    withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
+                        showReleaseNotes = false
+                    }
+                } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.secondary.opacity(0.7))
+                        .frame(width: 22, height: 22)
+                        .background(Color.primary.opacity(0.05))
+                        .cornerRadius(6)
+                }
+                .buttonStyle(.plain)
+                .help("Close")
+            }
+
+            Divider().opacity(0.2)
+
+            ScrollView {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(shownTag.map { "v\($0)" } ?? "v?")
+                        .font(.system(size: 11, weight: .bold, design: .monospaced))
+                        .foregroundColor(.secondary)
+
+                    ReleaseNotesMarkdownView(markdown: shownMarkdown)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.top, 2)
+            }
+            .frame(maxHeight: .infinity)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        .background(Color.primary.opacity(0.05))
+        .cornerRadius(16)
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+        .padding(.horizontal, 20)
+    }
+    
+    private var mainButtonSection: some View {
+        Button(action: {
+            withAnimation(.spring(response: 0.3, dampingFraction: 0.6)) {
+                manager.toggleHapticsEnabled()
+            }
+        }) {
+            ZStack {
+                buttonBackground(isEnabled: manager.isHapticsEnabled)
+                    .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+                
+                HStack {
+                    Image(systemName: "power")
+                    Text(manager.isHapticsEnabled ? "DISABLE HAPTICS" : "ENABLE HAPTICS")
+                }
+                .font(.headline)
+                .foregroundColor(.white)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .modifier(FloatingPerspectiveModifier())
+        }
+        .buttonStyle(HapticButtonStyle())
+        .padding(.horizontal, 20)
     }
     
     @ViewBuilder
@@ -287,10 +394,10 @@ struct PopButtonStyle: ButtonStyle {
     }
 }
 
-	private struct SettingsRow: View {
-	    let title: String
-	    @Binding var isOn: Bool
-	    var isDisabled: Bool = false
+		private struct SettingsRow: View {
+		    let title: String
+		    @Binding var isOn: Bool
+		    var isDisabled: Bool = false
 
 	    var body: some View {
 	        HStack(alignment: .center) {
@@ -300,12 +407,39 @@ struct PopButtonStyle: ButtonStyle {
 	        }
 	        .disabled(isDisabled)
         .opacity(isDisabled ? 0.6 : 1.0)
+	    }
+	}
+
+private struct ReleaseNotesMarkdownView: View {
+    let markdown: String?
+    
+    var body: some View {
+        Group {
+            if let markdown, !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                if #available(macOS 12.0, *) {
+                    if let attributed = try? AttributedString(markdown: markdown) {
+                        Text(attributed)
+                            .textSelection(.enabled)
+                    } else {
+                        Text(markdown)
+                            .textSelection(.enabled)
+                    }
+                } else {
+                    Text(markdown)
+                }
+            } else {
+                Text("Loading...")
+                    .foregroundColor(.secondary)
+            }
+        }
+        .font(.system(size: 11))
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
-private struct UpdatePulseDriver: ViewModifier {
-    let hasUpdateAvailable: Bool
-    @Binding var updatePulse: Bool
+	private struct UpdatePulseDriver: ViewModifier {
+	    let hasUpdateAvailable: Bool
+	    @Binding var updatePulse: Bool
     
     func body(content: Content) -> some View {
         if #available(macOS 12.0, *) {
@@ -362,14 +496,24 @@ struct VisualEffectView: NSViewRepresentable {
 private struct SlabPadPreviewHost: View {
     let showSettings: Bool
     let showUpdate: Bool
+    let showReleaseNotes: Bool
     
     var body: some View {
-        ContentView(initialShowSettings: showSettings)
+        ContentView(initialShowSettings: showSettings, initialShowReleaseNotes: showReleaseNotes)
             .onAppear {
                 if showUpdate {
                     let manager = SlabPadManager.shared
                     manager.latestReleaseTag = "999.0"
                     manager.latestReleaseURL = URL(string: "https://github.com/shalamand3r/SlabPad/releases")
+                    manager.latestReleaseNotesMarkdown = """
+                    ## What's new
+                    - this is a fake preview release note
+                    - **bold** and `code` should render on macOS 12+
+
+                    ### Details
+                    - more stuff
+                    - more stuff
+                    """
                     manager.hasUpdateAvailable = true
                 }
             }
@@ -379,11 +523,14 @@ private struct SlabPadPreviewHost: View {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-            SlabPadPreviewHost(showSettings: true, showUpdate: false)
+            SlabPadPreviewHost(showSettings: true, showUpdate: false, showReleaseNotes: false)
                 .previewDisplayName("Settings")
             
-            SlabPadPreviewHost(showSettings: false, showUpdate: true)
+            SlabPadPreviewHost(showSettings: false, showUpdate: true, showReleaseNotes: false)
                 .previewDisplayName("Big Button + Update")
+            
+            SlabPadPreviewHost(showSettings: false, showUpdate: true, showReleaseNotes: true)
+                .previewDisplayName("Release Notes")
         }
     }
 }
