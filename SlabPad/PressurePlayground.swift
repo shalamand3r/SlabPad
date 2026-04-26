@@ -10,7 +10,7 @@ private class RenderState {
 }
 
 @available(macOS 12.0, *)
-struct PressureTestView: View {
+struct PressurePlayground: View {
     @ObservedObject private var manager = SlabPadManager.shared
     @State private var pressure: CGFloat = 0
     @State private var location: CGPoint = CGPoint(x: 150, y: 50)

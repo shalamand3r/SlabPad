@@ -18,7 +18,7 @@ struct ContentView: View {
     @ObservedObject private var manager = SlabPadManager.shared
     @State private var showSettings = false
     @State private var showReleaseNotes = false
-    @State private var showEasterEgg = false
+    @State private var showPressurePlayground = false
     @State private var releaseNotesOpenedByHover = false
     @State private var hoverRestoreShowSettings = false
     @State private var hoverRestoreShowReleaseNotes = false
@@ -34,11 +34,11 @@ struct ContentView: View {
         case mainButton
         case settings
         case releaseNotes
-        case easterEgg
+        case pressurePlayground
     }
     
     private var activePanel: Panel {
-        if showEasterEgg { return .easterEgg }
+        if showPressurePlayground { return .pressurePlayground }
         if showReleaseNotes { return .releaseNotes }
         if showSettings { return .settings }
         return .mainButton
@@ -89,7 +89,7 @@ struct ContentView: View {
         .onChange(of: showReleaseNotes) { _ in
             NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
         }
-        .onChange(of: showEasterEgg) { _ in
+        .onChange(of: showPressurePlayground) { _ in
             NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
         }
     }
@@ -98,7 +98,7 @@ struct ContentView: View {
         HStack(spacing: 6) {
             Button(action: {
                 withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
-                    showEasterEgg.toggle()
+                    showPressurePlayground.toggle()
                 }
             }) {
                 Text("SlabPad")
@@ -113,7 +113,7 @@ struct ContentView: View {
                     showReleaseNotes.toggle()
                     if showReleaseNotes {
                         showSettings = false
-                        showEasterEgg = false
+                        showPressurePlayground = false
                     }
                 }
                 releaseNotesOpenedByHover = false
@@ -171,7 +171,7 @@ struct ContentView: View {
                     showSettings.toggle()
                     if showSettings {
                         showReleaseNotes = false
-                        showEasterEgg = false
+                        showPressurePlayground = false
                     }
                 }
             }) {
@@ -237,16 +237,16 @@ struct ContentView: View {
                     )
                     .allowsHitTesting(activePanel == .releaseNotes)
 
-                easterEggSection
-                    .opacity(activePanel == .easterEgg ? 1 : 0)
-                    .scaleEffect(activePanel == .easterEgg ? 1.0 : 0.9)
+                pressurePlaygroundSection
+                    .opacity(activePanel == .pressurePlayground ? 1 : 0)
+                    .scaleEffect(activePanel == .pressurePlayground ? 1.0 : 0.9)
                     .rotation3DEffect(
-                        .degrees(activePanel == .easterEgg ? 0 : 90),
+                        .degrees(activePanel == .pressurePlayground ? 0 : 90),
                         axis: (x: 1, y: 0, z: 0),
                         anchor: .center,
                         perspective: 0.15
                     )
-                    .allowsHitTesting(activePanel == .easterEgg)
+                    .allowsHitTesting(activePanel == .pressurePlayground)
             }
             .fixedSize(horizontal: false, vertical: true)
             .padding(.top, 4)
@@ -314,18 +314,21 @@ struct ContentView: View {
         .layoutPriority(1)
     }
 
-    private var easterEggSection: some View {
+    private var pressurePlaygroundSection: some View {
         VStack(spacing: 0) {
             if #available(macOS 12.0, *) {
-                PressureTestView(onExit: {
+                PressurePlayground(onExit: {
                     withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
-                        showEasterEgg = false
+                        showPressurePlayground = false
                     }
                 })
             } else {
-                Text("Pressure test requires macOS 12.0+")
+                Spacer()
+                Text("Pressure Playground requires macOS 12.0+")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+                Spacer()
             }
         }
         .padding(14)
@@ -489,25 +492,6 @@ struct ContentView: View {
                         endPoint: .bottom
                     )
                 )
-        }
-    }
-}
-
-private struct HapticToggleButtonBackground: ViewModifier {
-    let isEnabled: Bool
-    
-    func body(content: Content) -> some View {
-        if #available(macOS 13.0, *) {
-            content.background(isEnabled ? Color.red.gradient : Color.slabPadAccent.gradient)
-        } else {
-            let base = isEnabled ? Color.red : Color.slabPadAccent
-            content.background(
-                LinearGradient(
-                    colors: [base.opacity(0.9), base],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-            )
         }
     }
 }
@@ -681,10 +665,9 @@ struct VisualEffectView: NSViewRepresentable {
 private struct SlabPadPreviewHost: View {
     let showSettings: Bool
     let showUpdate: Bool
-    let showReleaseNotes: Bool
     
     var body: some View {
-        ContentView(initialShowSettings: showSettings, initialShowReleaseNotes: showReleaseNotes)
+        ContentView(initialShowSettings: showSettings, initialShowReleaseNotes: false)
             .onAppear {
                 if showUpdate {
                     let manager = SlabPadManager.shared
@@ -717,14 +700,11 @@ private struct SlabPadPreviewHost: View {
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
         Group {
-            SlabPadPreviewHost(showSettings: true, showUpdate: false, showReleaseNotes: false)
+            SlabPadPreviewHost(showSettings: true, showUpdate: false)
                 .previewDisplayName("Settings")
             
-            SlabPadPreviewHost(showSettings: false, showUpdate: true, showReleaseNotes: false)
+            SlabPadPreviewHost(showSettings: false, showUpdate: true)
                 .previewDisplayName("Big Button + Update")
-            
-            SlabPadPreviewHost(showSettings: false, showUpdate: true, showReleaseNotes: true)
-                .previewDisplayName("Release Notes")
         }
     }
 }
