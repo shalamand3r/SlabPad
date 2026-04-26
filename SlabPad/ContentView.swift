@@ -117,7 +117,7 @@ struct ContentView: View {
                         .foregroundColor(.green)
                         .opacity(updatePulse ? 0.55 : 1.0)
                 }
-                .help("New version available!")
+                .help("Click to download the latest version!")
                 .buttonStyle(PopButtonStyle())
                 .onHover { hovering in
                     isHoveringUpdateBadge = hovering
@@ -297,7 +297,7 @@ struct ContentView: View {
                     .foregroundColor(.secondary)
                 Spacer(minLength: 8)
 
-                if let url = manager.latestReleaseURL {
+                if let url = manager.latestReleaseURL, !shouldShowLatest {
                     Button {
                         NSWorkspace.shared.open(url)
                     } label: {
