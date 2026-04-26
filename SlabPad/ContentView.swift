@@ -662,50 +662,9 @@ struct VisualEffectView: NSViewRepresentable {
 }
 
 #if DEBUG
-private struct SlabPadPreviewHost: View {
-    let showSettings: Bool
-    let showUpdate: Bool
-    
-    var body: some View {
-        ContentView(initialShowSettings: showSettings, initialShowReleaseNotes: false)
-            .onAppear {
-                if showUpdate {
-                    let manager = SlabPadManager.shared
-                    manager.latestReleaseTag = "999.0"
-                    manager.latestReleaseURL = URL(string: "https://github.com/shalamand3r/SlabPad/releases")
-                    manager.latestReleaseNotesMarkdown = """
-                    ## What's new
-                    - this is a generic preview release note
-                    - **bold** and `code` should render on macOS 12+
-
-                    ### Details
-                    - more generic stuff
-                    """
-                    manager.hasUpdateAvailable = true
-                }
-                
-                let manager = SlabPadManager.shared
-                manager.currentReleaseTag = "1.5"
-                manager.currentReleaseNotesMarkdown = """
-                ### Requires macOS 13.5 Ventura or later
-                ---
-                ### Changelog:
-                - this is a generic changelog
-                - more generic stuff
-                """
-            }
-    }
-}
-
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        Group {
-            SlabPadPreviewHost(showSettings: true, showUpdate: false)
-                .previewDisplayName("Settings")
-            
-            SlabPadPreviewHost(showSettings: false, showUpdate: true)
-                .previewDisplayName("Big Button + Update")
-        }
+        ContentView()
     }
 }
 #endif
