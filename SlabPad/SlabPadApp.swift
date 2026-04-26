@@ -4,6 +4,10 @@
 import SwiftUI
 import Combine
 
+extension Notification.Name {
+    static let slabPadPopoverNeedsResize = Notification.Name("slabpad.popoverNeedsResize")
+}
+
 @main
 struct SlabPadApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
@@ -28,7 +32,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 300, height: 290)
+        popover.contentSize = NSSize(width: 300, height: 10)
         popover.behavior = .transient
         // bridge swiftui to appkit popover
         popover.contentViewController = NSHostingController(rootView: ContentView())
@@ -54,6 +58,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self,
             selector: #selector(handleWake),
             name: NSWorkspace.didWakeNotification,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handlePopoverNeedsResize),
+            name: .slabPadPopoverNeedsResize,
             object: nil
         )
         
@@ -100,9 +111,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        adjustPopoverSize()
+
         // anchor popover to menubar icon
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         popover.contentViewController?.view.window?.makeKey()
+    }
+
+    @objc private func handlePopoverNeedsResize() {
+        guard popover.isShown else { return }
+        adjustPopoverSize()
+    }
+
+    private func adjustPopoverSize() {
+        guard let view = popover.contentViewController?.view else { return }
+        view.layoutSubtreeIfNeeded()
+
+        var size = view.fittingSize
+        size.width = 300
+        size.height = max(10, min(500, size.height))
+        popover.contentSize = size
     }
 
     func applicationWillTerminate(_ notification: Notification) {

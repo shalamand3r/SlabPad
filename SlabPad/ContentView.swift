@@ -50,9 +50,13 @@ struct ContentView: View {
             headerSection
             mainInterface
         }
-        .frame(width: 300, height: 300)
+        .frame(width: 300)
+        .fixedSize(horizontal: false, vertical: true)
         .padding(.bottom, 20)
         .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow))
+        .onChange(of: showSettings) { _ in
+            NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
+        }
     }
 
     private var headerSection: some View {
