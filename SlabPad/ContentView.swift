@@ -122,13 +122,13 @@ struct ContentView: View {
             }) {
                 Text(titleVersionText)
                     .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(.secondary)
+                    .foregroundColor(showReleaseNotes ? .slabPadAccent : .secondary.opacity(0.6))
                     .padding(.horizontal, 6)
                     .padding(.vertical, 2)
                     .background(
                         Capsule()
-                            .fill(Color.primary.opacity(0.06))
-                            .overlay(Capsule().stroke(Color.primary.opacity(0.1), lineWidth: 0.5))
+                            .fill(showReleaseNotes ? Color.slabPadAccent.opacity(0.15) : Color.primary.opacity(0.06))
+                            .overlay(Capsule().stroke(showReleaseNotes ? Color.slabPadAccent.opacity(0.2) : Color.primary.opacity(0.1), lineWidth: 0.5))
                     )
                     .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
             }
