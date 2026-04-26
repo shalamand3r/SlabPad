@@ -18,6 +18,7 @@ struct ContentView: View {
     @ObservedObject private var manager = SlabPadManager.shared
     @State private var showSettings = false
     @State private var showReleaseNotes = false
+    @State private var showEasterEgg = false
     @State private var releaseNotesOpenedByHover = false
     @State private var hoverRestoreShowSettings = false
     @State private var hoverRestoreShowReleaseNotes = false
@@ -33,9 +34,11 @@ struct ContentView: View {
         case mainButton
         case settings
         case releaseNotes
+        case easterEgg
     }
     
     private var activePanel: Panel {
+        if showEasterEgg { return .easterEgg }
         if showReleaseNotes { return .releaseNotes }
         if showSettings { return .settings }
         return .mainButton
@@ -86,17 +89,32 @@ struct ContentView: View {
         .onChange(of: showReleaseNotes) { _ in
             NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
         }
+        .onChange(of: showEasterEgg) { _ in
+            NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
+        }
     }
 
     private var headerSection: some View {
         HStack(spacing: 6) {
-            Text("SlabPad")
-                .font(.system(.title3, design: .rounded))
-                .fontWeight(.bold)
+            Button(action: {
+                withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
+                    showEasterEgg.toggle()
+                }
+            }) {
+                Text("SlabPad")
+                    .font(.system(.title3, design: .rounded))
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+            }
+            .buttonStyle(PopButtonStyle())
+            
             Button(action: {
                 withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
                     showReleaseNotes.toggle()
-                    if showReleaseNotes { showSettings = false }
+                    if showReleaseNotes {
+                        showSettings = false
+                        showEasterEgg = false
+                    }
                 }
                 releaseNotesOpenedByHover = false
                 manager.checkForUpdate()
@@ -151,7 +169,10 @@ struct ContentView: View {
             Button(action: {
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     showSettings.toggle()
-                    if showSettings { showReleaseNotes = false }
+                    if showSettings {
+                        showReleaseNotes = false
+                        showEasterEgg = false
+                    }
                 }
             }) {
                 Image(systemName: "gearshape.fill")
@@ -215,6 +236,17 @@ struct ContentView: View {
                         perspective: 0.15
                     )
                     .allowsHitTesting(activePanel == .releaseNotes)
+
+                easterEggSection
+                    .opacity(activePanel == .easterEgg ? 1 : 0)
+                    .scaleEffect(activePanel == .easterEgg ? 1.0 : 0.9)
+                    .rotation3DEffect(
+                        .degrees(activePanel == .easterEgg ? 0 : 90),
+                        axis: (x: 1, y: 0, z: 0),
+                        anchor: .center,
+                        perspective: 0.15
+                    )
+                    .allowsHitTesting(activePanel == .easterEgg)
             }
             .fixedSize(horizontal: false, vertical: true)
             .padding(.top, 4)
@@ -282,6 +314,29 @@ struct ContentView: View {
         .layoutPriority(1)
     }
 
+    private var easterEggSection: some View {
+        VStack(spacing: 0) {
+            if #available(macOS 12.0, *) {
+                PressureTestView(onExit: {
+                    withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
+                        showEasterEgg = false
+                    }
+                })
+            } else {
+                Text("Pressure test requires macOS 12.0+")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.secondary)
+            }
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.primary.opacity(0.05))
+        .cornerRadius(16)
+        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+        .padding(.horizontal, 20)
+        .layoutPriority(1)
+    }
+
     private var releaseNotesSection: some View {
         let shouldShowLatest = manager.hasUpdateAvailable && isHoveringUpdateBadge
         
@@ -301,8 +356,9 @@ struct ContentView: View {
                     Text(titleLatest)
                         .opacity(shouldShowLatest ? 1 : 0)
                 }
-                    .font(.system(size: 13, weight: .bold))
-                    .foregroundColor(.secondary)
+                .animation(.easeInOut(duration: 0.18), value: shouldShowLatest)
+                .font(.system(size: 13, weight: .bold))
+                .foregroundColor(.secondary)
                 Spacer(minLength: 8)
 
                 if let url = manager.latestReleaseURL, !shouldShowLatest {
@@ -495,7 +551,7 @@ private struct ReleaseNotesMarkdownView: View {
         Group {
             if let markdown, !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 if #available(macOS 12.0, *) {
-                    if let attributed = try? AttributedString(markdown: markdown) {
+                    if let attributed = try? AttributedString(markdown: markdown, options: .init(interpretedSyntax: .full)) {
                         Text(attributed)
                             .textSelection(.enabled)
                     } else {
@@ -548,7 +604,7 @@ private struct ChangelogBulletsView: View {
                             .padding(.top, 1)
                         Group {
                             if #available(macOS 12.0, *) {
-                                if let attributed = try? AttributedString(markdown: bullet) {
+                                if let attributed = try? AttributedString(markdown: bullet, options: .init(interpretedSyntax: .full)) {
                                     Text(attributed)
                                 } else {
                                     Text(bullet)
@@ -636,12 +692,11 @@ private struct SlabPadPreviewHost: View {
                     manager.latestReleaseURL = URL(string: "https://github.com/shalamand3r/SlabPad/releases")
                     manager.latestReleaseNotesMarkdown = """
                     ## What's new
-                    - this is a fake preview release note
+                    - this is a generic preview release note
                     - **bold** and `code` should render on macOS 12+
 
                     ### Details
-                    - more stuff
-                    - more stuff
+                    - more generic stuff
                     """
                     manager.hasUpdateAvailable = true
                 }
@@ -650,16 +705,10 @@ private struct SlabPadPreviewHost: View {
                 manager.currentReleaseTag = "1.5"
                 manager.currentReleaseNotesMarkdown = """
                 ### Requires macOS 13.5 Ventura or later
-                #### Use [SlabPad 1.2](https://github.com/shalamand3r/SlabPad/releases/tag/1.2) for macOS versions 11.0 to 13.4.1
-                ---
-                ### Follow these instructions to open SlabPad after downloading:
-
-                - **macOS 15 Sequoia or later:** Open Privacy & Security in System Settings and click \"open anyway\"
-                - **macOS 14 Sonoma and below:** Control+click SlabPad and click open
                 ---
                 ### Changelog:
-                - Synced icon state throughout menu
-                - Project now open source
+                - this is a generic changelog
+                - more generic stuff
                 """
             }
     }
