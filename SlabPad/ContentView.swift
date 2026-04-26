@@ -18,6 +18,9 @@ struct ContentView: View {
     @ObservedObject private var manager = SlabPadManager.shared
     @State private var showSettings = false
     @State private var showReleaseNotes = false
+    @State private var releaseNotesOpenedByHover = false
+    @State private var hoverRestoreShowSettings = false
+    @State private var hoverRestoreShowReleaseNotes = false
     @State private var isHoveringUpdateBadge = false
     @State private var updatePulse = false
     
@@ -87,6 +90,7 @@ struct ContentView: View {
                     showReleaseNotes.toggle()
                     if showReleaseNotes { showSettings = false }
                 }
+                releaseNotesOpenedByHover = false
                 manager.checkForUpdate()
                 manager.fetchCurrentReleaseNotes()
             }) {
@@ -117,6 +121,23 @@ struct ContentView: View {
                 .buttonStyle(PopButtonStyle())
                 .onHover { hovering in
                     isHoveringUpdateBadge = hovering
+                    if hovering, manager.hasUpdateAvailable {
+                        if !showReleaseNotes {
+                            hoverRestoreShowSettings = showSettings
+                            hoverRestoreShowReleaseNotes = showReleaseNotes
+                            releaseNotesOpenedByHover = true
+                            withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
+                                showReleaseNotes = true
+                                showSettings = false
+                            }
+                        }
+                    } else if !hovering, releaseNotesOpenedByHover {
+                        withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
+                            showSettings = hoverRestoreShowSettings
+                            showReleaseNotes = hoverRestoreShowReleaseNotes
+                        }
+                        releaseNotesOpenedByHover = false
+                    }
                 }
             }
             Button(action: {
@@ -255,12 +276,23 @@ struct ContentView: View {
 
     private var releaseNotesSection: some View {
         let shouldShowLatest = manager.hasUpdateAvailable && isHoveringUpdateBadge
-        let shownTag = shouldShowLatest ? manager.latestReleaseTag : (manager.currentReleaseTag ?? manager.currentVersionString)
-        let shownMarkdown = shouldShowLatest ? manager.latestReleaseNotesMarkdown : manager.currentReleaseNotesMarkdown
+        
+        let currentNotes = normalizeNewlines(manager.currentReleaseNotesMarkdown)
+        let latestNotes = normalizeNewlines(manager.latestReleaseNotesMarkdown)
+        let currentChangelog = extractChangelogMarkdown(from: currentNotes) ?? currentNotes
+        let latestChangelog = extractChangelogMarkdown(from: latestNotes) ?? latestNotes
+        
+        let titleCurrent = "Release Notes"
+        let titleLatest = "Changelog"
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                Text("Release Notes")
+                ZStack(alignment: .leading) {
+                    Text(titleCurrent)
+                        .opacity(shouldShowLatest ? 0 : 1)
+                    Text(titleLatest)
+                        .opacity(shouldShowLatest ? 1 : 0)
+                }
                     .font(.system(size: 13, weight: .bold))
                     .foregroundColor(.secondary)
                 Spacer(minLength: 8)
@@ -281,6 +313,7 @@ struct ContentView: View {
                     withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
                         showReleaseNotes = false
                     }
+                    releaseNotesOpenedByHover = false
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 11, weight: .bold))
@@ -289,24 +322,28 @@ struct ContentView: View {
                         .background(Color.primary.opacity(0.05))
                         .cornerRadius(6)
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(PopButtonStyle())
                 .help("Close")
             }
 
             Divider().opacity(0.2)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(shownTag.map { "v\($0)" } ?? "v?")
-                        .font(.system(size: 11, weight: .bold, design: .monospaced))
-                        .foregroundColor(.secondary)
-
-                    ReleaseNotesMarkdownView(markdown: shownMarkdown)
+            ZStack {
+                ScrollView {
+                    ChangelogBulletsView(markdown: currentChangelog)
+                        .padding(.top, 2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.top, 2)
+                .opacity(shouldShowLatest ? 0 : 1)
+                
+                ScrollView {
+                    ChangelogBulletsView(markdown: latestChangelog)
+                        .padding(.top, 2)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .opacity(shouldShowLatest ? 1 : 0)
             }
-            .frame(maxHeight: .infinity)
+            .animation(.easeInOut(duration: 0.18), value: shouldShowLatest)
         }
         .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -314,6 +351,39 @@ struct ContentView: View {
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
         .padding(.horizontal, 20)
+    }
+
+    private func versionPillText(for tag: String?) -> String {
+        let raw = (tag ?? "?").trimmingCharacters(in: .whitespacesAndNewlines)
+        if raw.isEmpty { return "v?" }
+        return raw.hasPrefix("v") ? raw : "v\(raw)"
+    }
+
+    private func extractChangelogMarkdown(from markdown: String?) -> String? {
+        guard let markdown else { return nil }
+        let lines = markdown.components(separatedBy: .newlines)
+        let headerRegex = try? NSRegularExpression(pattern: "^\\s*#{2,6}\\s*changelog\\s*:?(\\s*)$", options: [.caseInsensitive])
+        guard let headerRegex else { return nil }
+
+        var startIndex: Int?
+        for (index, line) in lines.enumerated() {
+            let range = NSRange(line.startIndex..<line.endIndex, in: line)
+            if headerRegex.firstMatch(in: line, options: [], range: range) != nil {
+                startIndex = index + 1
+                break
+            }
+        }
+
+        guard let startIndex, startIndex < lines.count else { return nil }
+        let extracted = lines[startIndex...].joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        return extracted.isEmpty ? nil : extracted
+    }
+
+    private func normalizeNewlines(_ value: String?) -> String? {
+        guard let value else { return nil }
+        return value
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
     }
     
     private var mainButtonSection: some View {
@@ -437,9 +507,60 @@ private struct ReleaseNotesMarkdownView: View {
     }
 }
 
-	private struct UpdatePulseDriver: ViewModifier {
-	    let hasUpdateAvailable: Bool
-	    @Binding var updatePulse: Bool
+private struct ChangelogBulletsView: View {
+    let markdown: String?
+    
+    private var bulletLines: [String] {
+        guard let markdown else { return [] }
+        let normalized = markdown
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+        
+        let lines = normalized.components(separatedBy: "\n")
+        let bullets = lines.compactMap { line -> String? in
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.hasPrefix("- ") { return String(trimmed.dropFirst(2)) }
+            if trimmed.hasPrefix("* ") { return String(trimmed.dropFirst(2)) }
+            if trimmed.hasPrefix("• ") { return String(trimmed.dropFirst(2)) }
+            return nil
+        }
+        return bullets
+    }
+    
+    var body: some View {
+        if bulletLines.isEmpty {
+            ReleaseNotesMarkdownView(markdown: markdown)
+        } else {
+            VStack(alignment: .leading, spacing: 8) {
+                ForEach(bulletLines, id: \.self) { bullet in
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("•")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.secondary)
+                            .padding(.top, 1)
+                        Group {
+                            if #available(macOS 12.0, *) {
+                                if let attributed = try? AttributedString(markdown: bullet) {
+                                    Text(attributed)
+                                } else {
+                                    Text(bullet)
+                                }
+                            } else {
+                                Text(bullet)
+                            }
+                        }
+                        .font(.system(size: 11))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct UpdatePulseDriver: ViewModifier {
+    let hasUpdateAvailable: Bool
+    @Binding var updatePulse: Bool
     
     func body(content: Content) -> some View {
         if #available(macOS 12.0, *) {
@@ -516,6 +637,22 @@ private struct SlabPadPreviewHost: View {
                     """
                     manager.hasUpdateAvailable = true
                 }
+                
+                let manager = SlabPadManager.shared
+                manager.currentReleaseTag = "1.5"
+                manager.currentReleaseNotesMarkdown = """
+                ### Requires macOS 13.5 Ventura or later
+                #### Use [SlabPad 1.2](https://github.com/shalamand3r/SlabPad/releases/tag/1.2) for macOS versions 11.0 to 13.4.1
+                ---
+                ### Follow these instructions to open SlabPad after downloading:
+
+                - **macOS 15 Sequoia or later:** Open Privacy & Security in System Settings and click \"open anyway\"
+                - **macOS 14 Sonoma and below:** Control+click SlabPad and click open
+                ---
+                ### Changelog:
+                - Synced icon state throughout menu
+                - Project now open source
+                """
             }
     }
 }
