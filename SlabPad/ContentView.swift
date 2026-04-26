@@ -47,6 +47,14 @@ struct ContentView: View {
             set: { manager.setLaunchAtLogin($0) }
         )
     }
+
+    private var launchAtLoginTitle: String {
+        if manager.supportsLaunchAtLogin {
+            return "Launch at Login"
+        }
+
+        return "Launch at Login (macOS 13+)"
+    }
     
     private var appVersionText: String {
         let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
@@ -239,7 +247,7 @@ struct ContentView: View {
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             SettingsRow(
-                title: "Launch at Login",
+                title: launchAtLoginTitle,
                 isOn: manager.supportsLaunchAtLogin ? launchAtLoginBinding : .constant(false),
                 isDisabled: !manager.supportsLaunchAtLogin
             )
