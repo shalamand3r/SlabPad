@@ -256,6 +256,8 @@ struct ContentView: View {
                     // sync icon with menubar state
                     Text(manager.invertClicks ? "Left-click" : "Right-click")
                     Image(systemName: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
+                        .opacity(0.7)
+                        .animation(.easeInOut(duration: 0.18), value: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
                     Text("to instantly toggle haptics")
                 }
                 
@@ -310,6 +312,7 @@ struct ContentView: View {
         .background(Color.primary.opacity(0.05))
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+        .modifier(FloatingPerspectiveModifier(cornerRadius: 16, maxTilt: 5, shineMaxOpacity: 0.11, shineTravel: 120, perspective: 0.18))
         .padding(.horizontal, 20)
         .layoutPriority(1)
     }
@@ -336,6 +339,7 @@ struct ContentView: View {
         .background(Color.primary.opacity(0.05))
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+        .modifier(FloatingPerspectiveModifier(cornerRadius: 16, maxTilt: 5, shineMaxOpacity: 0.11, shineTravel: 120, perspective: 0.18))
         .padding(.horizontal, 20)
         .layoutPriority(1)
     }
@@ -417,6 +421,7 @@ struct ContentView: View {
         .background(Color.primary.opacity(0.05))
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+        .modifier(FloatingPerspectiveModifier(cornerRadius: 16, maxTilt: 5, shineMaxOpacity: 0.11, shineTravel: 120, perspective: 0.18))
         .padding(.horizontal, 20)
     }
 
@@ -472,6 +477,7 @@ struct ContentView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .modifier(FloatingPerspectiveModifier())
+            .animation(.easeInOut(duration: 0.18), value: manager.isHapticsEnabled)
         }
         .buttonStyle(HapticButtonStyle())
         .padding(.horizontal, 20)
@@ -480,11 +486,12 @@ struct ContentView: View {
     @ViewBuilder
     private func buttonBackground(isEnabled: Bool) -> some View {
         if #available(macOS 13.0, *) {
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(isEnabled ? Color.red.gradient : Color.slabPadAccent.gradient)
+                .animation(.easeInOut(duration: 0.18), value: isEnabled)
         } else {
             let base = isEnabled ? Color.red : Color.slabPadAccent
-            RoundedRectangle(cornerRadius: 12)
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(
                     LinearGradient(
                         colors: [base.opacity(0.9), base],
@@ -492,6 +499,7 @@ struct ContentView: View {
                         endPoint: .bottom
                     )
                 )
+                .animation(.easeInOut(duration: 0.18), value: isEnabled)
         }
     }
 }
@@ -669,7 +677,21 @@ struct ContentView_Previews: PreviewProvider {
 }
 #endif
 
+private struct ViewSizePreferenceKey: PreferenceKey {
+    static var defaultValue: CGSize = .zero
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        value = nextValue()
+    }
+}
+
 private struct FloatingPerspectiveModifier: ViewModifier {
+    var cornerRadius: CGFloat = 12
+    var maxTilt: Double = 10
+    var shineMaxOpacity: Double = 0.14
+    var shineTravel: CGFloat = 150
+    var perspective: CGFloat = 0.2
+
+    @State private var viewSize: CGSize = .zero
     @State private var rotation: (x: Double, y: Double) = (0, 0)
     @State private var shineOffset: CGPoint = .zero
     @State private var shineOpacity: Double = 0
@@ -679,46 +701,56 @@ private struct FloatingPerspectiveModifier: ViewModifier {
             content
                 .overlay(
                     GeometryReader { geo in
-                        // shiny
-                        LinearGradient(
-                            colors: [
-                                .white.opacity(0),
-                                .white.opacity(shineOpacity),
-                                .white.opacity(0)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                        .scaleEffect(2.5)
-                        .offset(x: shineOffset.x, y: shineOffset.y)
-                        .blendMode(.screen)
-                        .allowsHitTesting(false)
+                        ZStack {
+                            // shiny
+                            LinearGradient(
+                                colors: [
+                                    .white.opacity(0),
+                                    .white.opacity(shineOpacity),
+                                    .white.opacity(0)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            .scaleEffect(2.5)
+                            .offset(x: shineOffset.x, y: shineOffset.y)
+                            .blendMode(.screen)
+                            .allowsHitTesting(false)
+
+                            Color.clear
+                                .preference(key: ViewSizePreferenceKey.self, value: geo.size)
+                        }
                     }
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
                 )
                 .rotation3DEffect(
                     .degrees(rotation.x),
                     axis: (x: 1, y: 0, z: 0),
                     anchor: .center,
-                    perspective: 0.2
+                    perspective: perspective
                 )
                 .rotation3DEffect(
                     .degrees(rotation.y),
                     axis: (x: 0, y: 1, z: 0),
                     anchor: .center,
-                    perspective: 0.2
+                    perspective: perspective
                 )
+                .onPreferenceChange(ViewSizePreferenceKey.self) { newSize in
+                    viewSize = newSize
+                }
                 .onContinuousHover { phase in
                     switch phase {
                     case .active(let location):
-                        let x = (location.x / 260) - 0.5
-                        let y = (location.y / 160) - 0.5
+                        let w = max(viewSize.width, 1)
+                        let h = max(viewSize.height, 1)
+                        let x = (location.x / w) - 0.5
+                        let y = (location.y / h) - 0.5
                         
                         withAnimation(.interactiveSpring()) {
-                            rotation = (x: Double(y * -10), y: Double(x * 10))
+                            rotation = (x: Double(y * -maxTilt), y: Double(x * maxTilt))
                             // move shine in response to cursor :D
-                            shineOffset = CGPoint(x: x * 150, y: y * 150)
-                            shineOpacity = 0.14
+                            shineOffset = CGPoint(x: x * shineTravel, y: y * shineTravel)
+                            shineOpacity = shineMaxOpacity
                         }
                     case .ended:
                         withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
