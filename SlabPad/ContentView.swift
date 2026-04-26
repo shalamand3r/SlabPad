@@ -137,6 +137,8 @@ struct ContentView: View {
                 }) {
                     ZStack {
                         buttonBackground(isEnabled: manager.isHapticsEnabled)
+                            .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+                        
                         HStack {
                             Image(systemName: "power")
                             Text(manager.isHapticsEnabled ? "DISABLE HAPTICS" : "ENABLE HAPTICS")
@@ -145,6 +147,7 @@ struct ContentView: View {
                         .foregroundColor(.white)
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .modifier(FloatingPerspectiveModifier())
                 }
                 .buttonStyle(HapticButtonStyle())
                 .padding(.horizontal, 20)
@@ -274,7 +277,6 @@ struct HapticButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .opacity(configuration.isPressed ? 0.9 : 1.0)
             .animation(.spring(response: 0.25, dampingFraction: 0.55), value: configuration.isPressed)
     }
 }
@@ -388,3 +390,74 @@ struct ContentView_Previews: PreviewProvider {
     }
 }
 #endif
+
+private struct FloatingPerspectiveModifier: ViewModifier {
+    @State private var rotation: (x: Double, y: Double) = (0, 0)
+    @State private var shineOffset: CGPoint = .zero
+    @State private var shineOpacity: Double = 0
+    
+    func body(content: Content) -> some View {
+        if #available(macOS 13.0, *) {
+            content
+                .overlay(
+                    GeometryReader { geo in
+                        // shiny
+                        LinearGradient(
+                            colors: [
+                                .white.opacity(0),
+                                .white.opacity(shineOpacity),
+                                .white.opacity(0)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                        .scaleEffect(2.5)
+                        .offset(x: shineOffset.x, y: shineOffset.y)
+                        .blendMode(.screen)
+                        .allowsHitTesting(false)
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                )
+                .rotation3DEffect(
+                    .degrees(rotation.x),
+                    axis: (x: 1, y: 0, z: 0),
+                    anchor: .center,
+                    perspective: 0.2
+                )
+                .rotation3DEffect(
+                    .degrees(rotation.y),
+                    axis: (x: 0, y: 1, z: 0),
+                    anchor: .center,
+                    perspective: 0.2
+                )
+                .onContinuousHover { phase in
+                    switch phase {
+                    case .active(let location):
+                        let x = (location.x / 260) - 0.5
+                        let y = (location.y / 160) - 0.5
+                        
+                        withAnimation(.interactiveSpring()) {
+                            rotation = (x: Double(y * -10), y: Double(x * 10))
+                            // move shine in response to cursor :D
+                            shineOffset = CGPoint(x: x * 150, y: y * 150)
+                            shineOpacity = 0.14
+                        }
+                    case .ended:
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
+                            rotation = (0, 0)
+                            shineOffset = .zero
+                            shineOpacity = 0
+                        }
+                    }
+                }
+        } else {
+            content
+        }
+    }
+}
+
+private struct ParallaxEffect: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+    }
+}
