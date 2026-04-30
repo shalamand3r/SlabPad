@@ -7,6 +7,7 @@ import Combine
 extension Notification.Name {
     static let slabPadPopoverNeedsResize = Notification.Name("slabpad.popoverNeedsResize")
     static let slabPadRequestQuit = Notification.Name("slabpad.requestQuit")
+    static let slabPadRequestResetAndQuit = Notification.Name("slabpad.resetAndQuit")
 }
 
 @main
@@ -33,7 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 300, height: 10)
+        popover.contentSize = NSSize(width: 288, height: 10)
         popover.behavior = .transient
         // bridge swiftui to appkit popover
         popover.contentViewController = NSHostingController(rootView: ContentView())
@@ -73,6 +74,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self,
             selector: #selector(handleQuitRequest),
             name: .slabPadRequestQuit,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleResetAndQuitRequest),
+            name: .slabPadRequestResetAndQuit,
             object: nil
         )
         
@@ -136,20 +144,48 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         view.layoutSubtreeIfNeeded()
 
         var size = view.fittingSize
-        size.width = 300
+        size.width = 288
         size.height = max(10, min(500, size.height))
         popover.contentSize = size
     }
 
     @objc private func handleQuitRequest() {
-        let showPressedStateDelay: TimeInterval = 0.15
-        let quitAfterCloseDelay: TimeInterval = 0.08
-
+        let showPressedStateDelay: TimeInterval = 0.20
         DispatchQueue.main.asyncAfter(deadline: .now() + showPressedStateDelay) { [weak self] in
-            self?.popover.performClose(nil)
-            DispatchQueue.main.asyncAfter(deadline: .now() + quitAfterCloseDelay) {
-                NSApplication.shared.terminate(nil)
-            }
+            self?.closePopoverAndQuit()
+        }
+    }
+    
+    @objc private func handleResetAndQuitRequest() {
+        resetAppDefaultsForTesting()
+
+        closePopoverAndQuit()
+    }
+    
+    private func resetAppDefaultsForTesting() {
+        let defaults = UserDefaults.standard
+
+        // keep language/locale behavior intact; only reset our own app prefs
+        let keysToReset = [
+            "disableOnLaunch",
+            "reEnableOnQuit",
+            "invertClicks",
+            "hasLaunchedBefore",
+            "showBottomHint",
+        ]
+
+        for key in keysToReset {
+            defaults.removeObject(forKey: key)
+        }
+
+        defaults.synchronize()
+    }
+    
+    private func closePopoverAndQuit() {
+        let quitAfterCloseDelay: TimeInterval = 0.08
+        popover.performClose(nil)
+        DispatchQueue.main.asyncAfter(deadline: .now() + quitAfterCloseDelay) {
+            NSApplication.shared.terminate(nil)
         }
     }
 
