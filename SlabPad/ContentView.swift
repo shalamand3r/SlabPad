@@ -562,12 +562,6 @@ struct ContentView: View {
         .padding(.horizontal, 14)
     }
 
-    private func versionPillText(for tag: String?) -> String {
-        let raw = (tag ?? "?").trimmingCharacters(in: .whitespacesAndNewlines)
-        if raw.isEmpty { return "v?" }
-        return raw.hasPrefix("v") ? raw : "v\(raw)"
-    }
-
     private func extractChangelogMarkdown(from markdown: String?) -> String? {
         guard let markdown else { return nil }
         let lines = markdown.components(separatedBy: .newlines)
@@ -902,11 +896,5 @@ private struct FloatingPerspectiveModifier: ViewModifier {
         } else {
             content
         }
-    }
-}
-
-private struct ParallaxEffect: ViewModifier {
-    func body(content: Content) -> some View {
-        content
     }
 }
