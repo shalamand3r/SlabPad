@@ -186,7 +186,7 @@ struct ContentView: View {
             .buttonStyle(PopButtonStyle())
 
             Button(action: {
-                withAnimation(.easeInOut(duration: 0.12)) {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     quitPressed = true
                     showSettings = false
                     showReleaseNotes = false
@@ -194,7 +194,7 @@ struct ContentView: View {
                 }
                 
                 // let the red "pressed" state render before we start closing/quitting
-                DispatchQueue.main.async {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
                     NotificationCenter.default.post(name: .slabPadRequestQuit, object: nil)
                 }
             }) {
@@ -202,12 +202,8 @@ struct ContentView: View {
                     .font(.system(size: 14, weight: .semibold))
                     .foregroundColor(quitPressed ? .red : .secondary.opacity(0.6))
                     .frame(width: 28, height: 28)
-                    .background(quitPressed ? Color.red.opacity(0.16) : Color.clear)
+                    .background(quitPressed ? Color.red.opacity(0.15) : Color.clear)
                     .cornerRadius(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(quitPressed ? Color.red.opacity(0.22) : Color.clear, lineWidth: 0.5)
-                    )
             }
             .help(Text("Quit"))
             .buttonStyle(PopButtonStyle())
@@ -325,7 +321,6 @@ struct ContentView: View {
         .background(Color.primary.opacity(0.05))
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
-        .modifier(FloatingPerspectiveModifier(cornerRadius: 16, maxTilt: 5, shineMaxOpacity: 0.11, shineTravel: 120, perspective: 0.18))
         .padding(.horizontal, 20)
         .layoutPriority(1)
     }

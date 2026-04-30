@@ -142,8 +142,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func handleQuitRequest() {
-        let showPressedStateDelay: TimeInterval = 0.07
-        let quitAfterCloseDelay: TimeInterval = 0.07
+        let showPressedStateDelay: TimeInterval = 0.15
+        let quitAfterCloseDelay: TimeInterval = 0.08
 
         DispatchQueue.main.asyncAfter(deadline: .now() + showPressedStateDelay) { [weak self] in
             self?.popover.performClose(nil)
