@@ -278,17 +278,17 @@ struct ContentView: View {
         powerHoldStartWorkItem = nil
         powerHoldCompleteWorkItem = nil
 
-        if !quitPressed {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                quitPressed = true
-            }
-        }
-
         powerHoldProgress = 0
 
         let startWork = DispatchWorkItem {
             guard isPowerPressActive, !resetHoldTriggered else { return }
             powerHoldDidStartProgress = true
+
+            if !quitPressed {
+                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                    quitPressed = true
+                }
+            }
 
             withAnimation(.linear(duration: 2.0)) {
                 powerHoldProgress = 1
