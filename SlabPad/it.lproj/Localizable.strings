@@ -1,0 +1,19 @@
+"Launch at Login" = "Avvia all’accesso";
+"Launch at Login (macOS 13+)" = "Avvia all’accesso (macOS 13+)";
+"Click to download the latest version!" = "Fai clic per scaricare l’ultima versione!";
+"Left-click" = "Clic sinistro";
+"Right-click" = "Clic destro";
+"to instantly toggle haptics" = "per attivare/disattivare l’haptica all’istante";
+"Quit" = "Esci";
+"Disable Haptics on Launch" = "Disattiva haptica all’avvio";
+"Re-enable Haptics on Quit" = "Riattiva haptica all’uscita";
+"Invert Menu Bar Clicks" = "Inverti i clic della barra dei menu";
+"Pressure Playground requires macOS 12.0+" = "Pressure Playground richiede macOS 12.0+";
+"Release Notes" = "Note di rilascio";
+"Changelog" = "Registro modifiche";
+"Open on GitHub" = "Apri su GitHub";
+"Close" = "Chiudi";
+"DISABLE HAPTICS" = "DISATTIVA HAPTICA";
+"ENABLE HAPTICS" = "ATTIVA HAPTICA";
+"Loading..." = "Caricamento…";
+
