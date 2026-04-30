@@ -157,12 +157,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc private func handleResetAndQuitRequest() {
-        if let bundleID = Bundle.main.bundleIdentifier {
-            UserDefaults.standard.removePersistentDomain(forName: bundleID)
-            UserDefaults.standard.synchronize()
-        }
+        resetAppDefaultsForTesting()
 
         closePopoverAndQuit()
+    }
+    
+    private func resetAppDefaultsForTesting() {
+        let defaults = UserDefaults.standard
+
+        // keep language/locale behavior intact; only reset our own app prefs
+        let keysToReset = [
+            "disableOnLaunch",
+            "reEnableOnQuit",
+            "invertClicks",
+            "hasLaunchedBefore",
+            "showBottomHint",
+        ]
+
+        for key in keysToReset {
+            defaults.removeObject(forKey: key)
+        }
+
+        defaults.synchronize()
     }
     
     private func closePopoverAndQuit() {
