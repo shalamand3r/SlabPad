@@ -1,0 +1,19 @@
+"Launch at Login" = "登录时启动";
+"Launch at Login (macOS 13+)" = "登录时启动（macOS 13+）";
+"Click to download the latest version!" = "点击下载最新版本！";
+"Left-click" = "左键单击";
+"Right-click" = "右键单击";
+"to instantly toggle haptics" = "即可立即切换触觉反馈";
+"Quit" = "退出";
+"Disable Haptics on Launch" = "启动时关闭触觉反馈";
+"Re-enable Haptics on Quit" = "退出时重新开启触觉反馈";
+"Invert Menu Bar Clicks" = "反转菜单栏点击";
+"Pressure Playground requires macOS 12.0+" = "Pressure Playground 需要 macOS 12.0 及以上";
+"Release Notes" = "发行说明";
+"Changelog" = "更新日志";
+"Open on GitHub" = "在 GitHub 打开";
+"Close" = "关闭";
+"DISABLE HAPTICS" = "关闭触觉反馈";
+"ENABLE HAPTICS" = "开启触觉反馈";
+"Loading..." = "加载中…";
+

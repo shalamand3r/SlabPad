@@ -1,0 +1,19 @@
+"Launch at Login" = "로그인 시 실행";
+"Launch at Login (macOS 13+)" = "로그인 시 실행(macOS 13+)";
+"Click to download the latest version!" = "클릭하여 최신 버전을 다운로드하세요!";
+"Left-click" = "왼쪽 클릭";
+"Right-click" = "오른쪽 클릭";
+"to instantly toggle haptics" = "로 햅틱을 즉시 전환";
+"Quit" = "종료";
+"Disable Haptics on Launch" = "시작 시 햅틱 비활성화";
+"Re-enable Haptics on Quit" = "종료 시 햅틱 다시 활성화";
+"Invert Menu Bar Clicks" = "메뉴 막대 클릭 반전";
+"Pressure Playground requires macOS 12.0+" = "Pressure Playground는 macOS 12.0 이상이 필요합니다";
+"Release Notes" = "릴리스 노트";
+"Changelog" = "변경 사항";
+"Open on GitHub" = "GitHub에서 열기";
+"Close" = "닫기";
+"DISABLE HAPTICS" = "햅틱 끄기";
+"ENABLE HAPTICS" = "햅틱 켜기";
+"Loading..." = "불러오는 중…";
+

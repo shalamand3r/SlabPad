@@ -24,6 +24,7 @@ struct ContentView: View {
     @State private var hoverRestoreShowReleaseNotes = false
     @State private var isHoveringUpdateBadge = false
     @State private var updatePulse = false
+    @State private var quitPressed = false
     
     init(initialShowSettings: Bool = false, initialShowReleaseNotes: Bool = false) {
         _showSettings = State(initialValue: initialShowSettings)
@@ -51,7 +52,7 @@ struct ContentView: View {
         )
     }
 
-    private var launchAtLoginTitle: String {
+    private var launchAtLoginTitle: LocalizedStringKey {
         if manager.supportsLaunchAtLogin {
             return "Launch at Login"
         }
@@ -143,7 +144,7 @@ struct ContentView: View {
                         .foregroundColor(.green)
                         .opacity(updatePulse ? 0.55 : 1.0)
                 }
-                .help("Click to download the latest version!")
+                .help(Text("Click to download the latest version!"))
                 .buttonStyle(PopButtonStyle())
                 .onHover { hovering in
                     isHoveringUpdateBadge = hovering
@@ -182,6 +183,33 @@ struct ContentView: View {
                     .background(showSettings ? Color.slabPadAccent.opacity(0.15) : Color.clear)
                     .cornerRadius(8)
             }
+            .buttonStyle(PopButtonStyle())
+
+            Button(action: {
+                withAnimation(.easeInOut(duration: 0.12)) {
+                    quitPressed = true
+                    showSettings = false
+                    showReleaseNotes = false
+                    showPressurePlayground = false
+                }
+                
+                // let the red "pressed" state render before we start closing/quitting
+                DispatchQueue.main.async {
+                    NotificationCenter.default.post(name: .slabPadRequestQuit, object: nil)
+                }
+            }) {
+                Image(systemName: "power")
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundColor(quitPressed ? .red : .secondary.opacity(0.6))
+                    .frame(width: 28, height: 28)
+                    .background(quitPressed ? Color.red.opacity(0.16) : Color.clear)
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(quitPressed ? Color.red.opacity(0.22) : Color.clear, lineWidth: 0.5)
+                    )
+            }
+            .help(Text("Quit"))
             .buttonStyle(PopButtonStyle())
         }
         .padding(.horizontal, 20)
@@ -254,20 +282,14 @@ struct ContentView: View {
             HStack {
                 HStack(spacing: 4) {
                     // sync icon with menubar state
-                    Text(manager.invertClicks ? "Left-click" : "Right-click")
+                    let leftClick: LocalizedStringKey = "Left-click"
+                    let rightClick: LocalizedStringKey = "Right-click"
+                    Text(manager.invertClicks ? leftClick : rightClick)
                     Image(systemName: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
                         .opacity(0.7)
                         .animation(.easeInOut(duration: 0.18), value: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
                     Text("to instantly toggle haptics")
                 }
-                
-                Text("•")
-                
-                Button(action: { NSApplication.shared.terminate(nil) }) {
-                    Text("Quit")
-                        .underline()
-                }
-                .buttonStyle(PopButtonStyle())
             }
             .font(.system(size: 10))
             .foregroundColor(.secondary)
@@ -288,24 +310,15 @@ struct ContentView: View {
 
             Divider().opacity(0.2)
 
-            SettingsRow(
-                title: "Disable Haptics on Launch",
-                isOn: $manager.disableOnLaunch
-            )
+            SettingsRow(title: "Disable Haptics on Launch", isOn: $manager.disableOnLaunch)
 
             Divider().opacity(0.2)
 
-            SettingsRow(
-                title: "Re-enable Haptics on Quit",
-                isOn: $manager.reEnableOnQuit
-            )
+            SettingsRow(title: "Re-enable Haptics on Quit", isOn: $manager.reEnableOnQuit)
 
             Divider().opacity(0.2)
 
-            SettingsRow(
-                title: "Invert Menu Bar Clicks",
-                isOn: $manager.invertClicks
-            )
+            SettingsRow(title: "Invert Menu Bar Clicks", isOn: $manager.invertClicks)
         }
         .padding(14)
         .frame(maxWidth: .infinity)
@@ -352,8 +365,8 @@ struct ContentView: View {
         let currentChangelog = extractChangelogMarkdown(from: currentNotes) ?? currentNotes
         let latestChangelog = extractChangelogMarkdown(from: latestNotes) ?? latestNotes
         
-        let titleCurrent = "Release Notes"
-        let titleLatest = "Changelog"
+        let titleCurrent: LocalizedStringKey = "Release Notes"
+        let titleLatest: LocalizedStringKey = "Changelog"
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
@@ -377,7 +390,7 @@ struct ContentView: View {
                             .foregroundColor(.secondary.opacity(0.7))
                     }
                     .buttonStyle(PopButtonStyle())
-                    .help("Open on GitHub")
+                    .help(Text("Open on GitHub"))
                 }
 
                 Button {
@@ -394,7 +407,7 @@ struct ContentView: View {
                         .cornerRadius(6)
                 }
                 .buttonStyle(PopButtonStyle())
-                .help("Close")
+                .help(Text("Close"))
             }
 
             Divider().opacity(0.2)
@@ -470,7 +483,9 @@ struct ContentView: View {
                 
                 HStack {
                     Image(systemName: "power")
-                    Text(manager.isHapticsEnabled ? "DISABLE HAPTICS" : "ENABLE HAPTICS")
+                    let disableHaptics: LocalizedStringKey = "DISABLE HAPTICS"
+                    let enableHaptics: LocalizedStringKey = "ENABLE HAPTICS"
+                    Text(manager.isHapticsEnabled ? disableHaptics : enableHaptics)
                 }
                 .font(.headline)
                 .foregroundColor(.white)
@@ -521,7 +536,7 @@ struct PopButtonStyle: ButtonStyle {
 }
 
 		private struct SettingsRow: View {
-		    let title: String
+		    let title: LocalizedStringKey
 		    @Binding var isOn: Bool
 		    var isDisabled: Bool = false
 

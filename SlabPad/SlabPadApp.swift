@@ -6,6 +6,7 @@ import Combine
 
 extension Notification.Name {
     static let slabPadPopoverNeedsResize = Notification.Name("slabpad.popoverNeedsResize")
+    static let slabPadRequestQuit = Notification.Name("slabpad.requestQuit")
 }
 
 @main
@@ -65,6 +66,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self,
             selector: #selector(handlePopoverNeedsResize),
             name: .slabPadPopoverNeedsResize,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleQuitRequest),
+            name: .slabPadRequestQuit,
             object: nil
         )
         
@@ -131,6 +139,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         size.width = 300
         size.height = max(10, min(500, size.height))
         popover.contentSize = size
+    }
+
+    @objc private func handleQuitRequest() {
+        let showPressedStateDelay: TimeInterval = 0.07
+        let quitAfterCloseDelay: TimeInterval = 0.07
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + showPressedStateDelay) { [weak self] in
+            self?.popover.performClose(nil)
+            DispatchQueue.main.asyncAfter(deadline: .now() + quitAfterCloseDelay) {
+                NSApplication.shared.terminate(nil)
+            }
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {
