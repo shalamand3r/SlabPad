@@ -1,11 +1,15 @@
 import SwiftUI
 import AppKit
 
+private struct Shockwave {
+    var progress: CGFloat
+    var center: CGPoint
+}
+
 private class RenderState {
     var currentLoc: CGPoint = CGPoint(x: 150, y: 50)
     var currentPres: CGFloat = 0
-    var shockwaveProgress: CGFloat = 1.0
-    var shockwaveCenter: CGPoint = .zero
+    var shockwaves: [Shockwave] = []
     var lastTime: TimeInterval = 0
 }
 
@@ -30,8 +34,7 @@ struct PressurePlayground: View {
                 }
                 
                 if didForceClick && manager.isHapticsEnabled {
-                    renderState.shockwaveProgress = 0.0
-                    renderState.shockwaveCenter = renderState.currentLoc
+                    renderState.shockwaves.append(Shockwave(progress: 0.0, center: renderState.currentLoc))
                 }
                 
                 self.pressure = pres
@@ -64,10 +67,10 @@ struct PressurePlayground: View {
                     renderState.currentLoc.y += (targetLoc.y - renderState.currentLoc.y) * lerpFactor
                     renderState.currentPres += (targetPres - renderState.currentPres) * presLerpFactor
                     
-                    if renderState.shockwaveProgress < 1.0 {
-                        renderState.shockwaveProgress += CGFloat(dt) * 1.2 // approx 0.8s to expand
-                        if renderState.shockwaveProgress > 1.0 { renderState.shockwaveProgress = 1.0 }
+                    for i in 0..<renderState.shockwaves.count {
+                        renderState.shockwaves[i].progress += CGFloat(dt) * 0.8
                     }
+                    renderState.shockwaves.removeAll { $0.progress >= 1.0 }
                     
                     let drawLoc = renderState.currentLoc
                     let drawPres = renderState.currentPres
@@ -77,9 +80,6 @@ struct PressurePlayground: View {
                     let baseStrength: CGFloat = 8
                     let maxStrength: CGFloat = baseStrength + (40 * drawPres)
                     let influenceRadius: CGFloat = 60 + (drawPres * 60)
-                    
-                    let shockwaveRadius = renderState.shockwaveProgress * 400.0
-                    let shockwaveIntensity = 1.0 - renderState.shockwaveProgress
                     
                     var gridPoints: [[CGPoint]] = []
                     
@@ -102,10 +102,13 @@ struct PressurePlayground: View {
                             var displacedX = x - (dx * warp * maxStrength / 50.0)
                             var displacedY = y - (dy * warp * maxStrength / 50.0)
                             
-                            if renderState.shockwaveProgress < 1.0 {
-                                let swDx = originalPoint.x - renderState.shockwaveCenter.x
-                                let swDy = originalPoint.y - renderState.shockwaveCenter.y
+                            for shockwave in renderState.shockwaves {
+                                let swDx = originalPoint.x - shockwave.center.x
+                                let swDy = originalPoint.y - shockwave.center.y
                                 let swDist = sqrt(swDx*swDx + swDy*swDy)
+                                
+                                let shockwaveRadius = shockwave.progress * 400.0
+                                let shockwaveIntensity = 1.0 - shockwave.progress
                                 
                                 let distFromRing = abs(swDist - shockwaveRadius)
                                 let ringWidth: CGFloat = 40.0
@@ -135,13 +138,17 @@ struct PressurePlayground: View {
                                 let intensity = CGFloat(exp(-Double(dist * dist) / Double(2.0 * influenceRadius * influenceRadius)))
                                 
                                 var swHighlight: CGFloat = 0
-                                if renderState.shockwaveProgress < 1.0 {
-                                    let swDx = p.x - renderState.shockwaveCenter.x
-                                    let swDy = p.y - renderState.shockwaveCenter.y
+                                for shockwave in renderState.shockwaves {
+                                    let swDx = p.x - shockwave.center.x
+                                    let swDy = p.y - shockwave.center.y
                                     let swDist = sqrt(swDx*swDx + swDy*swDy)
+                                    
+                                    let shockwaveRadius = shockwave.progress * 400.0
+                                    let shockwaveIntensity = 1.0 - shockwave.progress
+                                    
                                     let distFromRing = abs(swDist - shockwaveRadius)
                                     if distFromRing < 40 {
-                                        swHighlight = CGFloat(cos((distFromRing / 40.0) * .pi / 2)) * shockwaveIntensity
+                                        swHighlight += CGFloat(cos((distFromRing / 40.0) * .pi / 2)) * shockwaveIntensity
                                     }
                                 }
                                 
@@ -213,6 +220,8 @@ struct PressureSensitiveArea: NSViewRepresentable {
 }
 
 class PressureNSView: NSView {
+    override var isFlipped: Bool { true }
+    
     var onPressureUpdate: ((CGPoint?, CGFloat, Bool) -> Void)?
     private var currentPressure: CGFloat = 0
     private var lastStage: Int = 0
@@ -290,10 +299,9 @@ class PressureNSView: NSView {
 
     private func updateLocation(with event: NSEvent, didForceClick: Bool = false) {
         let location = convert(event.locationInWindow, from: nil)
-        let flippedLocation = CGPoint(x: location.x, y: bounds.height - location.y)
         
         if bounds.contains(location) {
-            onPressureUpdate?(flippedLocation, currentPressure, didForceClick)
+            onPressureUpdate?(location, currentPressure, didForceClick)
         } else {
             onPressureUpdate?(nil, 0, false)
         }
