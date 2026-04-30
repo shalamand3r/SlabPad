@@ -7,6 +7,7 @@ import Combine
 extension Notification.Name {
     static let slabPadPopoverNeedsResize = Notification.Name("slabpad.popoverNeedsResize")
     static let slabPadRequestQuit = Notification.Name("slabpad.requestQuit")
+    static let slabPadRequestResetAndQuit = Notification.Name("slabpad.resetAndQuit")
 }
 
 @main
@@ -76,6 +77,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             object: nil
         )
         
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleResetAndQuitRequest),
+            name: .slabPadRequestResetAndQuit,
+            object: nil
+        )
+        
         // auto-open on first launch
         if !manager.hasLaunchedBefore {
             manager.hasLaunchedBefore = true
@@ -142,14 +150,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func handleQuitRequest() {
-        let showPressedStateDelay: TimeInterval = 0.15
-        let quitAfterCloseDelay: TimeInterval = 0.08
-
+        let showPressedStateDelay: TimeInterval = 0.20
         DispatchQueue.main.asyncAfter(deadline: .now() + showPressedStateDelay) { [weak self] in
-            self?.popover.performClose(nil)
-            DispatchQueue.main.asyncAfter(deadline: .now() + quitAfterCloseDelay) {
-                NSApplication.shared.terminate(nil)
-            }
+            self?.closePopoverAndQuit()
+        }
+    }
+    
+    @objc private func handleResetAndQuitRequest() {
+        if let bundleID = Bundle.main.bundleIdentifier {
+            UserDefaults.standard.removePersistentDomain(forName: bundleID)
+            UserDefaults.standard.synchronize()
+        }
+
+        closePopoverAndQuit()
+    }
+    
+    private func closePopoverAndQuit() {
+        let quitAfterCloseDelay: TimeInterval = 0.08
+        popover.performClose(nil)
+        DispatchQueue.main.asyncAfter(deadline: .now() + quitAfterCloseDelay) {
+            NSApplication.shared.terminate(nil)
         }
     }
 

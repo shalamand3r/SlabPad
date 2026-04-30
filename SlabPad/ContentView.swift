@@ -25,6 +25,14 @@ struct ContentView: View {
     @State private var isHoveringUpdateBadge = false
     @State private var updatePulse = false
     @State private var quitPressed = false
+    @AppStorage("showBottomHint") private var showBottomHint = true
+    @State private var resetHoldTriggered = false
+    @State private var isPowerPressActive = false
+    @State private var powerHoldStartWorkItem: DispatchWorkItem?
+    @State private var powerHoldCompleteWorkItem: DispatchWorkItem?
+    @State private var powerHoldProgress: CGFloat = 0
+    @State private var powerHoldDidStartProgress = false
+    @State private var ignoreNextPowerTap = false
     
     init(initialShowSettings: Bool = false, initialShowReleaseNotes: Bool = false) {
         _showSettings = State(initialValue: initialShowSettings)
@@ -186,6 +194,12 @@ struct ContentView: View {
             .buttonStyle(PopButtonStyle())
 
             Button(action: {
+                if resetHoldTriggered { return }
+                if ignoreNextPowerTap {
+                    ignoreNextPowerTap = false
+                    return
+                }
+                
                 withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
                     quitPressed = true
                     showSettings = false
@@ -204,9 +218,21 @@ struct ContentView: View {
                     .frame(width: 28, height: 28)
                     .background(quitPressed ? Color.red.opacity(0.15) : Color.clear)
                     .cornerRadius(8)
+                    .overlay(powerHoldRing)
             }
             .help(Text("Quit"))
             .buttonStyle(PopButtonStyle())
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 0)
+                    .onChanged { _ in
+                        if !isPowerPressActive {
+                            beginPowerHold()
+                        }
+                    }
+                    .onEnded { _ in
+                        endPowerHold()
+                    }
+            )
         }
         .padding(.horizontal, 14)
         .padding(.top, 14)
@@ -223,6 +249,89 @@ struct ContentView: View {
             updatePulse = manager.hasUpdateAvailable
         }
         .modifier(UpdatePulseDriver(hasUpdateAvailable: manager.hasUpdateAvailable, updatePulse: $updatePulse))
+    }
+
+    private var powerHoldRing: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .stroke(Color.primary.opacity(0.08), lineWidth: 2)
+
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .trim(from: 0, to: powerHoldProgress)
+                .stroke(
+                    Color.red.opacity(0.95),
+                    style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
+                )
+                .rotationEffect(.degrees(-90))
+        }
+        .padding(-3)
+        .opacity(powerHoldDidStartProgress ? 1.0 : 0.0)
+        .allowsHitTesting(false)
+    }
+
+    private func beginPowerHold() {
+        isPowerPressActive = true
+        powerHoldDidStartProgress = false
+
+        powerHoldStartWorkItem?.cancel()
+        powerHoldCompleteWorkItem?.cancel()
+        powerHoldStartWorkItem = nil
+        powerHoldCompleteWorkItem = nil
+
+        if !quitPressed {
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                quitPressed = true
+            }
+        }
+
+        powerHoldProgress = 0
+
+        let startWork = DispatchWorkItem {
+            guard isPowerPressActive, !resetHoldTriggered else { return }
+            powerHoldDidStartProgress = true
+
+            withAnimation(.linear(duration: 2.0)) {
+                powerHoldProgress = 1
+            }
+
+            let completeWork = DispatchWorkItem {
+                guard isPowerPressActive, !resetHoldTriggered else { return }
+                resetHoldTriggered = true
+                NotificationCenter.default.post(name: .slabPadRequestResetAndQuit, object: nil)
+            }
+
+            powerHoldCompleteWorkItem = completeWork
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0, execute: completeWork)
+        }
+
+        powerHoldStartWorkItem = startWork
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: startWork)
+    }
+
+    private func endPowerHold() {
+        isPowerPressActive = false
+
+        powerHoldStartWorkItem?.cancel()
+        powerHoldCompleteWorkItem?.cancel()
+        powerHoldStartWorkItem = nil
+        powerHoldCompleteWorkItem = nil
+
+        if powerHoldDidStartProgress && !resetHoldTriggered {
+            ignoreNextPowerTap = true
+            DispatchQueue.main.async {
+                ignoreNextPowerTap = false
+            }
+        }
+        powerHoldDidStartProgress = false
+
+        if !resetHoldTriggered {
+            withAnimation(.easeOut(duration: 0.12)) {
+                powerHoldProgress = 0
+            }
+            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                quitPressed = false
+            }
+        }
     }
 
     private var mainInterface: some View {
@@ -275,22 +384,44 @@ struct ContentView: View {
             .fixedSize(horizontal: false, vertical: true)
             .padding(.top, 2)
 
-            HStack {
-                HStack(spacing: 4) {
-                    // sync icon with menubar state
-                    let leftClick: LocalizedStringKey = "Left-click"
-                    let rightClick: LocalizedStringKey = "Right-click"
-                    Text(manager.invertClicks ? leftClick : rightClick)
-                    Image(systemName: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
-                        .opacity(0.7)
-                        .animation(.easeInOut(duration: 0.18), value: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
-                    Text("to instantly toggle haptics")
+            if showBottomHint {
+                HStack(spacing: 8) {
+                    HStack(spacing: 4) {
+                        // sync icon with menubar state
+                        let leftClick: LocalizedStringKey = "Left-click"
+                        let rightClick: LocalizedStringKey = "Right-click"
+                        Text(manager.invertClicks ? leftClick : rightClick)
+                        Image(systemName: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
+                            .opacity(0.7)
+                            .animation(.easeInOut(duration: 0.18), value: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
+                        Text("to instantly toggle haptics")
+                    }
+
+                    Spacer(minLength: 0)
+
+                    Button {
+                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                            showBottomHint = false
+                        }
+                        DispatchQueue.main.async {
+                            NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
+                        }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 10, weight: .semibold))
+                            .foregroundColor(.secondary.opacity(0.7))
+                            .frame(width: 20, height: 18)
+                            .background(Color.primary.opacity(0.05))
+                            .cornerRadius(6)
+                    }
+                    .buttonStyle(PopButtonStyle())
                 }
+                .font(.system(size: 10))
+                .foregroundColor(.secondary)
+                .padding(.horizontal, 14)
+                .padding(.top, 8)
+                .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
-            .font(.system(size: 10))
-            .foregroundColor(.secondary)
-            .padding(.horizontal, 14)
-            .padding(.top, 8)
         }
         .clipped()
         .animation(.spring(response: 0.55, dampingFraction: 0.82), value: activePanel)
