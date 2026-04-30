@@ -478,7 +478,6 @@ struct ContentView: View {
         .background(Color.primary.opacity(0.05))
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
-        .modifier(FloatingPerspectiveModifier(cornerRadius: 16, maxTilt: 5, shineMaxOpacity: 0.11, shineTravel: 120, perspective: 0.18))
         .padding(.horizontal, 14)
         .layoutPriority(1)
     }
@@ -560,7 +559,6 @@ struct ContentView: View {
         .background(Color.primary.opacity(0.05))
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
-        .modifier(FloatingPerspectiveModifier(cornerRadius: 16, maxTilt: 5, shineMaxOpacity: 0.11, shineTravel: 120, perspective: 0.18))
         .padding(.horizontal, 14)
     }
 
