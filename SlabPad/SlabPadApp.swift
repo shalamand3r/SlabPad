@@ -33,7 +33,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         NSApp.setActivationPolicy(.accessory)
         
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 300, height: 10)
+        popover.contentSize = NSSize(width: 288, height: 10)
         popover.behavior = .transient
         // bridge swiftui to appkit popover
         popover.contentViewController = NSHostingController(rootView: ContentView())
@@ -136,7 +136,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         view.layoutSubtreeIfNeeded()
 
         var size = view.fittingSize
-        size.width = 300
+        size.width = 288
         size.height = max(10, min(500, size.height))
         popover.contentSize = size
     }

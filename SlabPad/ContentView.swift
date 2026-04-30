@@ -80,9 +80,9 @@ struct ContentView: View {
             headerSection
             mainInterface
         }
-        .frame(width: 300)
+        .frame(width: 288)
         .fixedSize(horizontal: false, vertical: true)
-        .padding(.bottom, 20)
+        .padding(.bottom, 14)
         .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow))
         .onChange(of: showSettings) { _ in
             NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
@@ -208,9 +208,9 @@ struct ContentView: View {
             .help(Text("Quit"))
             .buttonStyle(PopButtonStyle())
         }
-        .padding(.horizontal, 20)
-        .padding(.top, 20)
-        .padding(.bottom, 10)
+        .padding(.horizontal, 14)
+        .padding(.top, 14)
+        .padding(.bottom, 6)
         .layoutPriority(1)
         .onChange(of: manager.hasUpdateAvailable) { hasUpdateAvailable in
             if hasUpdateAvailable {
@@ -273,7 +273,7 @@ struct ContentView: View {
                     .allowsHitTesting(activePanel == .pressurePlayground)
             }
             .fixedSize(horizontal: false, vertical: true)
-            .padding(.top, 4)
+            .padding(.top, 2)
 
             HStack {
                 HStack(spacing: 4) {
@@ -289,8 +289,8 @@ struct ContentView: View {
             }
             .font(.system(size: 10))
             .foregroundColor(.secondary)
-            .padding(.horizontal, 20)
-            .padding(.top, 14)
+            .padding(.horizontal, 14)
+            .padding(.top, 8)
         }
         .clipped()
         .animation(.spring(response: 0.55, dampingFraction: 0.82), value: activePanel)
@@ -321,7 +321,7 @@ struct ContentView: View {
         .background(Color.primary.opacity(0.05))
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 14)
         .layoutPriority(1)
     }
 
@@ -348,7 +348,7 @@ struct ContentView: View {
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
         .modifier(FloatingPerspectiveModifier(cornerRadius: 16, maxTilt: 5, shineMaxOpacity: 0.11, shineTravel: 120, perspective: 0.18))
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 14)
         .layoutPriority(1)
     }
 
@@ -430,7 +430,7 @@ struct ContentView: View {
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
         .modifier(FloatingPerspectiveModifier(cornerRadius: 16, maxTilt: 5, shineMaxOpacity: 0.11, shineTravel: 120, perspective: 0.18))
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 14)
     }
 
     private func versionPillText(for tag: String?) -> String {
@@ -490,7 +490,7 @@ struct ContentView: View {
             .animation(.easeInOut(duration: 0.18), value: manager.isHapticsEnabled)
         }
         .buttonStyle(HapticButtonStyle())
-        .padding(.horizontal, 20)
+        .padding(.horizontal, 14)
     }
     
     @ViewBuilder
