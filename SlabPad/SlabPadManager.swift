@@ -139,18 +139,27 @@ final class SlabPadManager: ObservableObject {
             request.setValue("SlabPad", forHTTPHeaderField: "User-Agent")
 
             do {
-                let (data, _) = try await URLSession.shared.data(for: request)
-                let release = try JSONDecoder().decode(GitHubReleaseResponse.self, from: data)
-                guard let latestVersion = SemVer(release.tagName) else { return }
-                let isUpdateAvailable = latestVersion > currentVersion
+                let (data, response) = try await URLSession.shared.data(for: request)
+                guard let http = response as? HTTPURLResponse else { return }
+                guard (200...299).contains(http.statusCode) else {
+                    logger.error("Update check failed (HTTP \(http.statusCode, privacy: .public))")
+                    return
+                }
 
-                await MainActor.run {
+                do {
+                    let release = try JSONDecoder().decode(GitHubReleaseResponse.self, from: data)
+                    guard let latestVersion = SemVer(release.tagName) else { return }
+                    let isUpdateAvailable = latestVersion > currentVersion
+
                     self.latestReleaseURL = release.htmlURL
                     self.latestReleaseTag = release.tagName
                     self.latestReleaseNotesMarkdown = release.body
                     self.hasUpdateAvailable = isUpdateAvailable
+                } catch {
+                    logger.error("Update check failed")
                 }
             } catch {
+                logger.error("Update check failed")
             }
         }
     }
@@ -176,13 +185,19 @@ final class SlabPadManager: ObservableObject {
                     if let http = response as? HTTPURLResponse, http.statusCode == 404 {
                         continue
                     }
-                    let release = try JSONDecoder().decode(GitHubReleaseResponse.self, from: data)
-                    await MainActor.run {
+                    guard let http = response as? HTTPURLResponse else { continue }
+                    guard (200...299).contains(http.statusCode) else { continue }
+
+                    do {
+                        let release = try JSONDecoder().decode(GitHubReleaseResponse.self, from: data)
                         self.currentReleaseTag = release.tagName
                         self.currentReleaseNotesMarkdown = release.body
+                        return
+                    } catch {
+                        logger.error("Failed to fetch release notes")
                     }
-                    return
                 } catch {
+                    // keep quiet; this is best-effort
                 }
             }
         }

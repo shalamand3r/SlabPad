@@ -28,13 +28,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusBarItem: NSStatusItem!
     private var popover: NSPopover!
     private var cancellables = Set<AnyCancellable>()
+
+    private let popoverWidth: CGFloat = 288
+    private let maxPopoverHeight: CGFloat = 500
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // hide dock icon
         NSApp.setActivationPolicy(.accessory)
         
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 288, height: 10)
+        popover.contentSize = NSSize(width: popoverWidth, height: 10)
         popover.behavior = .transient
         // bridge swiftui to appkit popover
         popover.contentViewController = NSHostingController(rootView: ContentView())
@@ -144,8 +147,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         view.layoutSubtreeIfNeeded()
 
         var size = view.fittingSize
-        size.width = 288
-        size.height = max(10, min(500, size.height))
+        size.width = popoverWidth
+        size.height = max(10, min(maxPopoverHeight, size.height))
         popover.contentSize = size
     }
 
@@ -166,7 +169,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let defaults = UserDefaults.standard
 
         // keep language/locale behavior intact; only reset our own app prefs
-        let keysToReset = [
+        let keysToReset: [String] = [
             "disableOnLaunch",
             "reEnableOnQuit",
             "invertClicks",
@@ -174,11 +177,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             "showBottomHint",
         ]
 
-        for key in keysToReset {
-            defaults.removeObject(forKey: key)
-        }
-
-        defaults.synchronize()
+        keysToReset.forEach(defaults.removeObject(forKey:))
     }
     
     private func closePopoverAndQuit() {
