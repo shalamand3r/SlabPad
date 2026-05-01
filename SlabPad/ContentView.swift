@@ -373,20 +373,29 @@ struct ContentView: View {
     }
 
     private var topHintView: some View {
-        HStack(spacing: 6) {
+        HStack(alignment: .center, spacing: 6) {
+            Spacer(minLength: 0)
+
             Button {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     showBottomHint = false
                 }
                 DispatchQueue.main.async { requestPopoverResize() }
             } label: {
-                Image(systemName: hintIconName)
-                    .font(.system(size: 11, weight: .bold))
-                    .foregroundColor(.secondary.opacity(isHoveringBottomHint ? 0.75 : 0.55))
-                    .frame(width: 22, height: 22)
+                if #available(macOS 14.0, *) {
+                    Image(systemName: hintIconName)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.secondary.opacity(isHoveringBottomHint ? 0.75 : 0.55))
+                        .frame(width: 22, height: 22)
+                        .contentTransition(.symbolEffect(.replace))
+                } else {
+                    Image(systemName: hintIconName)
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.secondary.opacity(isHoveringBottomHint ? 0.75 : 0.55))
+                        .frame(width: 22, height: 22)
+                }
             }
             .buttonStyle(PopButtonStyle())
-            .padding(.leading, 10)
 
             HStack(spacing: 4) {
                 let leftClick: LocalizedStringKey = "Left-click"
@@ -420,10 +429,10 @@ struct ContentView: View {
             }
         }
         .onReceive(
-            Timer.publish(every: 0.85, on: .main, in: .common).autoconnect()
+            Timer.publish(every: 2.0, on: .main, in: .common).autoconnect()
         ) { _ in
             guard showBottomHint, !isHoveringBottomHint else { return }
-            withAnimation(.easeInOut(duration: 0.18)) {
+            withAnimation(.easeInOut(duration: 0.25)) {
                 hintFlashIsArrow.toggle()
             }
         }
