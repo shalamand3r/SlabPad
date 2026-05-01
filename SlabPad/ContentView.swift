@@ -19,11 +19,9 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showReleaseNotes = false
     @State private var showPressurePlayground = false
-    @State private var releaseNotesOpenedByHover = false
-    @State private var hoverRestoreShowSettings = false
-    @State private var hoverRestoreShowReleaseNotes = false
     @State private var isHoveringUpdateBadge = false
-    @State private var updatePulse = false
+    @State private var updateHoverFlipWorkItem: DispatchWorkItem?
+    @State private var updatePressed = false
     @State private var quitPressed = false
     @AppStorage("showBottomHint") private var showBottomHint = true
     @State private var resetHoldTriggered = false
@@ -34,6 +32,8 @@ struct ContentView: View {
     @State private var powerHoldDidStartProgress = false
     @State private var ignoreNextPowerTap = false
     
+    private let spring = Animation.spring(response: 0.5, dampingFraction: 0.82)
+
     init(initialShowSettings: Bool = false, initialShowReleaseNotes: Bool = false) {
         _showSettings = State(initialValue: initialShowSettings)
         _showReleaseNotes = State(initialValue: initialShowReleaseNotes)
@@ -78,9 +78,8 @@ struct ContentView: View {
         return "v\(latestTag)"
     }
     
-    private var titleVersionText: String {
-        guard manager.hasUpdateAvailable, isHoveringUpdateBadge else { return appVersionText }
-        return "\(appVersionText) → \(latestVersionText)"
+    private var shouldShowLatestInVersionPill: Bool {
+        manager.hasUpdateAvailable && (isHoveringUpdateBadge || showReleaseNotes)
     }
 
     var body: some View {
@@ -92,21 +91,15 @@ struct ContentView: View {
         .fixedSize(horizontal: false, vertical: true)
         .padding(.bottom, 14)
         .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow))
-        .onChange(of: showSettings) { _ in
-            NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
-        }
-        .onChange(of: showReleaseNotes) { _ in
-            NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
-        }
-        .onChange(of: showPressurePlayground) { _ in
-            NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
-        }
+        .onChange(of: showSettings) { _ in requestPopoverResize() }
+        .onChange(of: showReleaseNotes) { _ in requestPopoverResize() }
+        .onChange(of: showPressurePlayground) { _ in requestPopoverResize() }
     }
 
     private var headerSection: some View {
         HStack(spacing: 6) {
             Button(action: {
-                withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
+                withAnimation(spring) {
                     showPressurePlayground.toggle()
                 }
             }) {
@@ -114,69 +107,89 @@ struct ContentView: View {
                     .font(.system(.title3, design: .rounded))
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
             .buttonStyle(PopButtonStyle())
             
             Button(action: {
-                withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
-                    showReleaseNotes.toggle()
-                    if showReleaseNotes {
-                        showSettings = false
-                        showPressurePlayground = false
+                if manager.hasUpdateAvailable {
+                    withAnimation(spring) {
+                        showReleaseNotes.toggle()
+                        if showReleaseNotes {
+                            showSettings = false
+                            showPressurePlayground = false
+                        }
                     }
+                } else {
+                    manager.checkForUpdate()
                 }
-                releaseNotesOpenedByHover = false
-                manager.checkForUpdate()
-                manager.fetchCurrentReleaseNotes()
             }) {
-                Text(titleVersionText)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(showReleaseNotes ? .slabPadAccent : .secondary.opacity(0.6))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(
-                        Capsule()
-                            .fill(showReleaseNotes ? Color.slabPadAccent.opacity(0.15) : Color.primary.opacity(0.06))
-                            .overlay(Capsule().stroke(showReleaseNotes ? Color.slabPadAccent.opacity(0.2) : Color.primary.opacity(0.1), lineWidth: 0.5))
-                    )
-                    .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+                VersionPillLabel(
+                    current: appVersionText,
+                    latest: latestVersionText,
+                    showLatest: shouldShowLatestInVersionPill
+                )
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .lineLimit(1)
+                .layoutPriority(1)
+                .foregroundColor(showReleaseNotes ? .slabPadAccent : .secondary.opacity(0.6))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(
+                    Capsule()
+                        .fill(showReleaseNotes ? Color.slabPadAccent.opacity(0.15) : Color.primary.opacity(0.06))
+                        .overlay(Capsule().stroke(showReleaseNotes ? Color.slabPadAccent.opacity(0.2) : Color.primary.opacity(0.1), lineWidth: 0.5))
+                )
+                .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+                .animation(.easeInOut(duration: 0.18), value: shouldShowLatestInVersionPill)
             }
             .buttonStyle(PopButtonStyle())
             Spacer(minLength: 8)
-            if manager.hasUpdateAvailable, let updateURL = manager.latestReleaseURL {
+            if manager.hasUpdateAvailable, let downloadURL = manager.latestDownloadZipURL {
                 Button {
-                    NSWorkspace.shared.open(updateURL)
+                    updatePressed = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+                        NotificationCenter.default.post(name: .slabPadRequestOpenUpdate, object: downloadURL)
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        updatePressed = false
+                    }
                 } label: {
                     Image(systemName: "arrow.down.circle.fill")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.green)
-                        .opacity(updatePulse ? 0.55 : 1.0)
+                        .frame(width: 28, height: 28)
+                        .background(updatePressed ? Color.green.opacity(0.18) : Color.clear)
+                        .cornerRadius(8)
                 }
                 .help(Text("Click to download the latest version!"))
                 .buttonStyle(PopButtonStyle())
                 .onHover { hovering in
-                    isHoveringUpdateBadge = hovering
-                    if hovering, manager.hasUpdateAvailable {
-                        if !showReleaseNotes {
-                            hoverRestoreShowSettings = showSettings
-                            hoverRestoreShowReleaseNotes = showReleaseNotes
-                            releaseNotesOpenedByHover = true
-                            withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
-                                showReleaseNotes = true
-                                showSettings = false
-                            }
-                        }
-                    } else if !hovering, releaseNotesOpenedByHover {
-                        withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
-                            showSettings = hoverRestoreShowSettings
-                            showReleaseNotes = hoverRestoreShowReleaseNotes
-                        }
-                        releaseNotesOpenedByHover = false
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        isHoveringUpdateBadge = hovering
                     }
+
+                    updateHoverFlipWorkItem?.cancel()
+                    updateHoverFlipWorkItem = nil
+
+                    guard hovering, manager.hasUpdateAvailable else { return }
+
+                    let workItem = DispatchWorkItem {
+                        guard isHoveringUpdateBadge, manager.hasUpdateAvailable else { return }
+
+                        withAnimation(spring) {
+                            showReleaseNotes = true
+                            showSettings = false
+                            showPressurePlayground = false
+                        }
+                    }
+                    updateHoverFlipWorkItem = workItem
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
                 }
             }
             Button(action: {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                withAnimation(spring) {
                     showSettings.toggle()
                     if showSettings {
                         showReleaseNotes = false
@@ -200,7 +213,7 @@ struct ContentView: View {
                     return
                 }
                 
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                withAnimation(spring) {
                     quitPressed = true
                     showSettings = false
                     showReleaseNotes = false
@@ -239,16 +252,8 @@ struct ContentView: View {
         .padding(.bottom, 6)
         .layoutPriority(1)
         .onChange(of: manager.hasUpdateAvailable) { hasUpdateAvailable in
-            if hasUpdateAvailable {
-                updatePulse = true
-            } else {
-                updatePulse = false
-            }
+            if !hasUpdateAvailable { updatePressed = false }
         }
-        .onAppear {
-            updatePulse = manager.hasUpdateAvailable
-        }
-        .modifier(UpdatePulseDriver(hasUpdateAvailable: manager.hasUpdateAvailable, updatePulse: $updatePulse))
     }
 
     private var powerHoldRing: some View {
@@ -273,11 +278,7 @@ struct ContentView: View {
         isPowerPressActive = true
         powerHoldDidStartProgress = false
 
-        powerHoldStartWorkItem?.cancel()
-        powerHoldCompleteWorkItem?.cancel()
-        powerHoldStartWorkItem = nil
-        powerHoldCompleteWorkItem = nil
-
+        cancelPowerHoldWorkItems()
         powerHoldProgress = 0
 
         let startWork = DispatchWorkItem {
@@ -285,7 +286,7 @@ struct ContentView: View {
             powerHoldDidStartProgress = true
 
             if !quitPressed {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                withAnimation(spring) {
                     quitPressed = true
                 }
             }
@@ -311,11 +312,7 @@ struct ContentView: View {
     private func endPowerHold() {
         isPowerPressActive = false
 
-        powerHoldStartWorkItem?.cancel()
-        powerHoldCompleteWorkItem?.cancel()
-        powerHoldStartWorkItem = nil
-        powerHoldCompleteWorkItem = nil
-
+        cancelPowerHoldWorkItems()
         if powerHoldDidStartProgress && !resetHoldTriggered {
             ignoreNextPowerTap = true
             DispatchQueue.main.async {
@@ -328,10 +325,21 @@ struct ContentView: View {
             withAnimation(.easeOut(duration: 0.12)) {
                 powerHoldProgress = 0
             }
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            withAnimation(spring) {
                 quitPressed = false
             }
         }
+    }
+    
+    private func cancelPowerHoldWorkItems() {
+        powerHoldStartWorkItem?.cancel()
+        powerHoldCompleteWorkItem?.cancel()
+        powerHoldStartWorkItem = nil
+        powerHoldCompleteWorkItem = nil
+    }
+    
+    private func requestPopoverResize() {
+        NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
     }
 
     private var mainInterface: some View {
@@ -403,9 +411,7 @@ struct ContentView: View {
                         withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                             showBottomHint = false
                         }
-                        DispatchQueue.main.async {
-                            NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
-                        }
+                        DispatchQueue.main.async { requestPopoverResize() }
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 10, weight: .semibold))
@@ -483,30 +489,19 @@ struct ContentView: View {
     }
 
     private var releaseNotesSection: some View {
-        let shouldShowLatest = manager.hasUpdateAvailable && isHoveringUpdateBadge
-        
-        let currentNotes = normalizeNewlines(manager.currentReleaseNotesMarkdown)
         let latestNotes = normalizeNewlines(manager.latestReleaseNotesMarkdown)
-        let currentChangelog = extractChangelogMarkdown(from: currentNotes) ?? currentNotes
         let latestChangelog = extractChangelogMarkdown(from: latestNotes) ?? latestNotes
         
-        let titleCurrent: LocalizedStringKey = "Release Notes"
         let titleLatest: LocalizedStringKey = "Changelog"
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                ZStack(alignment: .leading) {
-                    Text(titleCurrent)
-                        .opacity(shouldShowLatest ? 0 : 1)
-                    Text(titleLatest)
-                        .opacity(shouldShowLatest ? 1 : 0)
-                }
-                .animation(.easeInOut(duration: 0.18), value: shouldShowLatest)
+                Text(titleLatest)
                 .font(.system(size: 13, weight: .bold))
                 .foregroundColor(.secondary)
                 Spacer(minLength: 8)
 
-                if let url = manager.latestReleaseURL, !shouldShowLatest {
+                if let url = manager.latestReleaseURL {
                     Button {
                         NSWorkspace.shared.open(url)
                     } label: {
@@ -522,7 +517,6 @@ struct ContentView: View {
                     withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
                         showReleaseNotes = false
                     }
-                    releaseNotesOpenedByHover = false
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 11, weight: .bold))
@@ -537,22 +531,11 @@ struct ContentView: View {
 
             Divider().opacity(0.2)
 
-            ZStack {
-                ScrollView {
-                    ChangelogBulletsView(markdown: currentChangelog)
-                        .padding(.top, 2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .opacity(shouldShowLatest ? 0 : 1)
-                
-                ScrollView {
-                    ChangelogBulletsView(markdown: latestChangelog)
-                        .padding(.top, 2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .opacity(shouldShowLatest ? 1 : 0)
+            ScrollView {
+                ChangelogBulletsView(markdown: latestChangelog)
+                    .padding(.top, 2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .animation(.easeInOut(duration: 0.18), value: shouldShowLatest)
         }
         .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -587,6 +570,38 @@ struct ContentView: View {
         return value
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
+    }
+
+    private struct VersionPillLabel: View {
+        let current: String
+        let latest: String
+        let showLatest: Bool
+
+        var body: some View {
+            Group {
+                if showLatest {
+                    pillContent(showLatest: true)
+                        .transition(.opacity)
+                } else {
+                    pillContent(showLatest: false)
+                        .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.18), value: showLatest)
+        }
+
+        @ViewBuilder
+        private func pillContent(showLatest: Bool) -> some View {
+            HStack(spacing: 4) {
+                Text(current)
+                if showLatest {
+                    HStack(spacing: 4) {
+                        Text("→")
+                        Text(latest)
+                    }
+                }
+            }
+        }
     }
     
     private var mainButtonSection: some View {
@@ -741,45 +756,6 @@ private struct ChangelogBulletsView: View {
                         .font(.system(size: 11))
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
-                }
-            }
-        }
-    }
-}
-
-private struct UpdatePulseDriver: ViewModifier {
-    let hasUpdateAvailable: Bool
-    @Binding var updatePulse: Bool
-    
-    func body(content: Content) -> some View {
-        if #available(macOS 12.0, *) {
-            content.task(id: hasUpdateAvailable) {
-                guard hasUpdateAvailable else {
-                    updatePulse = false
-                    return
-                }
-
-                while !Task.isCancelled && hasUpdateAvailable {
-                    try? await Task.sleep(nanoseconds: 1_450_000_000)
-                    guard hasUpdateAvailable, !Task.isCancelled else { break }
-                    await MainActor.run {
-                        withAnimation(.easeInOut(duration: 1.1)) {
-                            updatePulse.toggle()
-                        }
-                    }
-                }
-            }
-        } else {
-            content.onReceive(
-                Timer.publish(every: 1.45, on: .main, in: .common).autoconnect()
-            ) { _ in
-                guard hasUpdateAvailable else {
-                    if updatePulse { updatePulse = false }
-                    return
-                }
-                
-                withAnimation(.easeInOut(duration: 1.1)) {
-                    updatePulse.toggle()
                 }
             }
         }
