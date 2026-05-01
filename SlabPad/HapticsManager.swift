@@ -56,34 +56,32 @@ final class HapticsManager {
             dlclose(handle)
         }
     }
-    
-    func setHaptics(to enabled: Bool) {
+
+    private func withActuator<T>(fallback: T, _ body: (UnsafeMutableRawPointer) -> T) -> T {
         guard let createDevice = createDefault,
               let getTrackpadActuator = getActuator,
-              let setSystemEnabled = setEnabled,
-              let release = releaseDevice else { return }
-        
-        // create device -> toggle actuator -> release
-        guard let device = createDevice() else { return }
-        
-        if let actuator = getTrackpadActuator(device) {
+              let release = releaseDevice else { return fallback }
+
+        guard let device = createDevice() else { return fallback }
+        defer { release(device) }
+
+        guard let actuator = getTrackpadActuator(device) else { return fallback }
+        return body(actuator)
+    }
+    
+    func setHaptics(to enabled: Bool) {
+        guard let setSystemEnabled = setEnabled else { return }
+        _ = withActuator(fallback: ()) { actuator in
             _ = setSystemEnabled(actuator, enabled ? 1 : 0)
         }
-        
-        release(device)
     }
     
     func isEnabled() -> Bool {
-        guard let createDevice = createDefault,
-              let getTrackpadActuator = getActuator,
-              let getSystemEnabled = getEnabled,
-              let release = releaseDevice else { return true }
-        
-        guard let device = createDevice() else { return true }
-        
+        guard let getSystemEnabled = getEnabled else { return true }
+
         // default to true on fail to prevent bricking trackpad
-        let res = (getTrackpadActuator(device).map { getSystemEnabled($0) == 1 }) ?? true
-        release(device)
-        return res
+        return withActuator(fallback: true) { actuator in
+            getSystemEnabled(actuator) == 1
+        }
     }
 }
