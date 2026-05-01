@@ -163,14 +163,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func handleQuitRequest() {
         let showPressedStateDelay: TimeInterval = 0.20
         DispatchQueue.main.asyncAfter(deadline: .now() + showPressedStateDelay) { [weak self] in
-            self?.closePopoverAndQuit()
+            self?.closePopoverAndQuit(relaunch: false)
         }
     }
     
     @objc private func handleResetAndQuitRequest() {
         resetAppDefaultsForTesting()
 
-        closePopoverAndQuit()
+        closePopoverAndQuit(relaunch: true)
     }
     
     private func resetAppDefaultsForTesting() {
@@ -188,12 +188,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         keysToReset.forEach(defaults.removeObject(forKey:))
     }
     
-    private func closePopoverAndQuit() {
+    private func closePopoverAndQuit(relaunch: Bool) {
         let quitAfterCloseDelay: TimeInterval = 0.08
         popover.performClose(nil)
-        DispatchQueue.main.asyncAfter(deadline: .now() + quitAfterCloseDelay) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + quitAfterCloseDelay) { [weak self] in
+            if relaunch {
+                self?.relaunchApp()
+            }
             NSApplication.shared.terminate(nil)
         }
+    }
+    
+    private func relaunchApp() {
+        let url = Bundle.main.bundleURL
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = ["-n", url.path]
+        try? process.run()
     }
     
     @objc private func handleOpenUpdateRequest(_ notification: Notification) {

@@ -23,6 +23,8 @@ struct ContentView: View {
     @State private var updateHoverFlipWorkItem: DispatchWorkItem?
     @State private var updatePressed = false
     @State private var quitPressed = false
+    @State private var isHoveringBottomHint = false
+    @State private var hintFlashIsArrow = false
     @AppStorage("showBottomHint") private var showBottomHint = true
     @State private var resetHoldTriggered = false
     @State private var isPowerPressActive = false
@@ -393,44 +395,74 @@ struct ContentView: View {
             .padding(.top, 2)
 
             if showBottomHint {
-                HStack(spacing: 8) {
-                    HStack(spacing: 4) {
-                        // sync icon with menubar state
-                        let leftClick: LocalizedStringKey = "Left-click"
-                        let rightClick: LocalizedStringKey = "Right-click"
-                        Text(manager.invertClicks ? leftClick : rightClick)
-                        Image(systemName: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
-                            .opacity(0.7)
-                            .animation(.easeInOut(duration: 0.18), value: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
-                        Text("to instantly toggle haptics")
-                    }
-
-                    Spacer(minLength: 0)
-
-                    Button {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            showBottomHint = false
-                        }
-                        DispatchQueue.main.async { requestPopoverResize() }
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.secondary.opacity(0.7))
-                            .frame(width: 20, height: 18)
-                            .background(Color.primary.opacity(0.05))
-                            .cornerRadius(6)
-                    }
-                    .buttonStyle(PopButtonStyle())
-                }
-                .font(.system(size: 10))
-                .foregroundColor(.secondary)
-                .padding(.horizontal, 14)
-                .padding(.top, 8)
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                topHintView
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
         }
         .clipped()
         .animation(.spring(response: 0.55, dampingFraction: 0.82), value: activePanel)
+    }
+
+    private var topHintView: some View {
+        HStack(spacing: 6) {
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    showBottomHint = false
+                }
+                DispatchQueue.main.async { requestPopoverResize() }
+            } label: {
+                Image(systemName: hintIconName)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.secondary.opacity(isHoveringBottomHint ? 0.75 : 0.55))
+                    .frame(width: 22, height: 22)
+            }
+            .buttonStyle(PopButtonStyle())
+            .padding(.leading, 10)
+
+            HStack(spacing: 4) {
+                let leftClick: LocalizedStringKey = "Left-click"
+                let rightClick: LocalizedStringKey = "Right-click"
+                Text(manager.invertClicks ? leftClick : rightClick)
+                    .fontWeight(.semibold)
+                        Image(systemName: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
+                            .opacity(0.75)
+                            .animation(.easeInOut(duration: 0.18), value: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
+                        Text("to instantly toggle haptics")
+                    }
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            .minimumScaleFactor(0.85)
+            .truncationMode(.tail)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.primary.opacity(0.035))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+        )
+        .padding(.horizontal, 14)
+        .padding(.top, 8)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.12)) {
+                isHoveringBottomHint = hovering
+            }
+        }
+        .onReceive(
+            Timer.publish(every: 0.85, on: .main, in: .common).autoconnect()
+        ) { _ in
+            guard showBottomHint, !isHoveringBottomHint else { return }
+            withAnimation(.easeInOut(duration: 0.18)) {
+                hintFlashIsArrow.toggle()
+            }
+        }
+    }
+
+    private var hintIconName: String {
+        if isHoveringBottomHint { return "xmark" }
+        return hintFlashIsArrow ? "arrow.up" : "lightbulb.fill"
     }
     
     private var settingsSection: some View {
