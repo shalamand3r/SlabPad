@@ -68,6 +68,7 @@ final class SlabPadManager: ObservableObject {
     // login item state
     @Published var launchAtLogin: Bool
     
+    @Published var isCheckingForUpdates: Bool = false
     @Published var hasUpdateAvailable: Bool = false
     @Published var latestReleaseURL: URL?
     @Published var latestReleaseTag: String?
@@ -131,18 +132,30 @@ final class SlabPadManager: ObservableObject {
         }
     }
     
-    func checkForUpdate() {
-        guard let currentVersion = SemVer(currentVersionString) else { return }
-        guard let url = URL(string: "https://api.github.com/repos/shalamand3r/SlabPad/releases/latest") else { return }
+    func checkForUpdate(completion: ((Bool) -> Void)? = nil) {
+        guard let currentVersion = SemVer(currentVersionString) else {
+            completion?(false)
+            return
+        }
+        guard let url = URL(string: "https://api.github.com/repos/shalamand3r/SlabPad/releases/latest") else {
+            completion?(false)
+            return
+        }
 
+        isCheckingForUpdates = true
         Task { @MainActor in
+            defer { isCheckingForUpdates = false }
+            
             var request = URLRequest(url: url)
             request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
             request.setValue("SlabPad", forHTTPHeaderField: "User-Agent")
 
             do {
                 let (data, response) = try await URLSession.shared.data(for: request)
-                guard let http = response as? HTTPURLResponse else { return }
+                guard let http = response as? HTTPURLResponse else {
+                    completion?(false)
+                    return
+                }
                 guard (200...299).contains(http.statusCode) else {
                     if let apiError = try? JSONDecoder().decode(GitHubAPIError.self, from: data) {
                         logger.error("Update check failed: \(apiError.message, privacy: .public)")
@@ -154,12 +167,16 @@ final class SlabPadManager: ObservableObject {
                     } else {
                         logger.error("Update check failed: HTTP \(http.statusCode, privacy: .public)")
                     }
+                    completion?(false)
                     return
                 }
 
                 do {
                     let release = try JSONDecoder().decode(GitHubReleaseResponse.self, from: data)
-                    guard let latestVersion = SemVer(release.tagName) else { return }
+                    guard let latestVersion = SemVer(release.tagName) else {
+                        completion?(false)
+                        return
+                    }
                     let isUpdateAvailable = latestVersion > currentVersion
 
                     self.latestReleaseURL = release.htmlURL
@@ -167,11 +184,14 @@ final class SlabPadManager: ObservableObject {
                     self.latestReleaseNotesMarkdown = release.body
                     self.latestDownloadZipURL = Self.makeDownloadZipURL(tagName: release.tagName)
                     self.hasUpdateAvailable = isUpdateAvailable
+                    completion?(isUpdateAvailable)
                 } catch {
                     logger.error("Update check failed: \(String(describing: error), privacy: .public)")
+                    completion?(false)
                 }
             } catch {
                 logger.error("Update check failed: \(String(describing: error), privacy: .public)")
+                completion?(false)
             }
         }
     }

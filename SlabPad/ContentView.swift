@@ -7,10 +7,7 @@ import Foundation
 
 private extension Color {
     static var slabPadAccent: Color {
-        if #available(macOS 12.0, *) {
-            return Color(nsColor: NSColor.controlAccentColor)
-        }
-        return Color.accentColor
+        .accentColor
     }
 }
 
@@ -24,7 +21,6 @@ struct ContentView: View {
     @State private var updatePressed = false
     @State private var quitPressed = false
     @State private var isHoveringBottomHint = false
-    @State private var hintFlashIsArrow = false
     @AppStorage("showBottomHint") private var showBottomHint = true
     @State private var resetHoldTriggered = false
     @State private var isPowerPressActive = false
@@ -33,6 +29,7 @@ struct ContentView: View {
     @State private var powerHoldProgress: CGFloat = 0
     @State private var powerHoldDidStartProgress = false
     @State private var ignoreNextPowerTap = false
+    @State private var showUpToDateToast = false
     
     private let spring = Animation.spring(response: 0.5, dampingFraction: 0.82)
 
@@ -93,6 +90,15 @@ struct ContentView: View {
         .fixedSize(horizontal: false, vertical: true)
         .padding(.bottom, 14)
         .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow))
+        .overlay(
+            Group {
+                if showUpToDateToast {
+                    upToDateToast
+                        .padding(.bottom, 20)
+                }
+            },
+            alignment: .bottom
+        )
         .onChange(of: showSettings) { _ in requestPopoverResize() }
         .onChange(of: showReleaseNotes) { _ in requestPopoverResize() }
         .onChange(of: showPressurePlayground) { _ in requestPopoverResize() }
@@ -124,7 +130,20 @@ struct ContentView: View {
                         }
                     }
                 } else {
-                    manager.checkForUpdate()
+                    manager.checkForUpdate { isAvailable in
+                        if !isAvailable {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                showUpToDateToast = true
+                            }
+                            
+                            // Auto-hide after 2 seconds
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
+                                    showUpToDateToast = false
+                                }
+                            }
+                        }
+                    }
                 }
             }) {
                 VersionPillLabel(
@@ -349,46 +368,18 @@ struct ContentView: View {
             ZStack {
                 settingsSection
                     .opacity(activePanel == .settings ? 1 : 0)
-                    .scaleEffect(activePanel == .settings ? 1.0 : 0.9)
-                    .rotation3DEffect(
-                        .degrees(activePanel == .settings ? 0 : -90),
-                        axis: (x: 1, y: 0, z: 0),
-                        anchor: .center,
-                        perspective: 0.15
-                    )
                     .allowsHitTesting(activePanel == .settings)
 
                 mainButtonSection
-                .opacity(activePanel == .mainButton ? 1 : 0)
-                .scaleEffect(activePanel == .mainButton ? 1.0 : 0.9)
-                .rotation3DEffect(
-                    .degrees(activePanel == .mainButton ? 0 : 90),
-                    axis: (x: 1, y: 0, z: 0),
-                    anchor: .center,
-                    perspective: 0.15
-                )
-                .allowsHitTesting(activePanel == .mainButton)
+                    .opacity(activePanel == .mainButton ? 1 : 0)
+                    .allowsHitTesting(activePanel == .mainButton)
                 
                 releaseNotesSection
                     .opacity(activePanel == .releaseNotes ? 1 : 0)
-                    .scaleEffect(activePanel == .releaseNotes ? 1.0 : 0.9)
-                    .rotation3DEffect(
-                        .degrees(activePanel == .releaseNotes ? 0 : 90),
-                        axis: (x: 1, y: 0, z: 0),
-                        anchor: .center,
-                        perspective: 0.15
-                    )
                     .allowsHitTesting(activePanel == .releaseNotes)
 
                 pressurePlaygroundSection
                     .opacity(activePanel == .pressurePlayground ? 1 : 0)
-                    .scaleEffect(activePanel == .pressurePlayground ? 1.0 : 0.9)
-                    .rotation3DEffect(
-                        .degrees(activePanel == .pressurePlayground ? 0 : 90),
-                        axis: (x: 1, y: 0, z: 0),
-                        anchor: .center,
-                        perspective: 0.15
-                    )
                     .allowsHitTesting(activePanel == .pressurePlayground)
             }
             .fixedSize(horizontal: false, vertical: true)
@@ -404,40 +395,34 @@ struct ContentView: View {
     }
 
     private var topHintView: some View {
-        HStack(spacing: 6) {
+        let leftClick: LocalizedStringKey = "Left-click the menu bar icon to instantly toggle haptics"
+        let rightClick: LocalizedStringKey = "Right-click the menu bar icon to instantly toggle haptics"
+        
+        return ZStack(alignment: .trailing) {
+            Text(manager.invertClicks ? leftClick : rightClick)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.vertical, 10)
+                .padding(.leading, 12)
+                .padding(.trailing, 36)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
             Button {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
                     showBottomHint = false
                 }
                 DispatchQueue.main.async { requestPopoverResize() }
             } label: {
-                Image(systemName: hintIconName)
-                    .font(.system(size: 11, weight: .bold))
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .bold))
                     .foregroundColor(.secondary.opacity(isHoveringBottomHint ? 0.75 : 0.55))
-                    .frame(width: 22, height: 22)
+                    .frame(width: 16, height: 16)
             }
             .buttonStyle(PopButtonStyle())
-            .padding(.leading, 10)
-
-            HStack(spacing: 4) {
-                let leftClick: LocalizedStringKey = "Left-click"
-                let rightClick: LocalizedStringKey = "Right-click"
-                Text(manager.invertClicks ? leftClick : rightClick)
-                    .fontWeight(.semibold)
-                        Image(systemName: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
-                            .opacity(0.75)
-                            .animation(.easeInOut(duration: 0.18), value: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
-                        Text("to instantly toggle haptics")
-                    }
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-            .minimumScaleFactor(0.85)
-            .truncationMode(.tail)
-
-            Spacer(minLength: 0)
+            .padding(10)
         }
-        .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Color.primary.opacity(0.035))
@@ -445,24 +430,35 @@ struct ContentView: View {
         )
         .padding(.horizontal, 14)
         .padding(.top, 8)
+        .contentShape(Rectangle())
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.12)) {
                 isHoveringBottomHint = hovering
             }
         }
-        .onReceive(
-            Timer.publish(every: 0.85, on: .main, in: .common).autoconnect()
-        ) { _ in
-            guard showBottomHint, !isHoveringBottomHint else { return }
-            withAnimation(.easeInOut(duration: 0.18)) {
-                hintFlashIsArrow.toggle()
-            }
-        }
     }
 
-    private var hintIconName: String {
-        if isHoveringBottomHint { return "xmark" }
-        return hintFlashIsArrow ? "arrow.up" : "lightbulb.fill"
+    private var upToDateToast: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundColor(.green)
+                .font(.system(size: 12, weight: .bold))
+            Text("You're up to date!")
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundColor(.primary.opacity(0.8))
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .background(
+            VisualEffectView(material: .hudWindow, blendingMode: .withinWindow)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
+        )
+        .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
+        .transition(.asymmetric(
+            insertion: .move(edge: .bottom).combined(with: .opacity),
+            removal: .opacity.combined(with: .scale(scale: 0.95))
+        ))
     }
     
     private var settingsSection: some View {
@@ -656,7 +652,6 @@ struct ContentView: View {
                 .foregroundColor(.white)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .modifier(FloatingPerspectiveModifier())
             .animation(.easeInOut(duration: 0.18), value: manager.isHapticsEnabled)
         }
         .buttonStyle(HapticButtonStyle())
@@ -709,7 +704,9 @@ struct PopButtonStyle: ButtonStyle {
 	        HStack(alignment: .center) {
 	            Text(title).font(.system(size: 13, weight: .semibold))
 	            Spacer(minLength: 12)
-	            Toggle("", isOn: $isOn).toggleStyle(.switch).labelsHidden()
+	            Toggle("", isOn: $isOn)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
 	        }
 	        .disabled(isDisabled)
         .opacity(isDisabled ? 0.6 : 1.0)
@@ -818,91 +815,3 @@ struct ContentView_Previews: PreviewProvider {
 }
 #endif
 
-private struct ViewSizePreferenceKey: PreferenceKey {
-    static var defaultValue: CGSize = .zero
-    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
-        value = nextValue()
-    }
-}
-
-private struct FloatingPerspectiveModifier: ViewModifier {
-    var cornerRadius: CGFloat = 12
-    var maxTilt: Double = 10
-    var shineMaxOpacity: Double = 0.14
-    var shineTravel: CGFloat = 150
-    var perspective: CGFloat = 0.2
-
-    @State private var viewSize: CGSize = .zero
-    @State private var rotation: (x: Double, y: Double) = (0, 0)
-    @State private var shineOffset: CGPoint = .zero
-    @State private var shineOpacity: Double = 0
-    
-    func body(content: Content) -> some View {
-        if #available(macOS 13.0, *) {
-            content
-                .overlay(
-                    GeometryReader { geo in
-                        ZStack {
-                            // shiny
-                            LinearGradient(
-                                colors: [
-                                    .white.opacity(0),
-                                    .white.opacity(shineOpacity),
-                                    .white.opacity(0)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                            .scaleEffect(2.5)
-                            .offset(x: shineOffset.x, y: shineOffset.y)
-                            .blendMode(.screen)
-                            .allowsHitTesting(false)
-
-                            Color.clear
-                                .preference(key: ViewSizePreferenceKey.self, value: geo.size)
-                        }
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                )
-                .rotation3DEffect(
-                    .degrees(rotation.x),
-                    axis: (x: 1, y: 0, z: 0),
-                    anchor: .center,
-                    perspective: perspective
-                )
-                .rotation3DEffect(
-                    .degrees(rotation.y),
-                    axis: (x: 0, y: 1, z: 0),
-                    anchor: .center,
-                    perspective: perspective
-                )
-                .onPreferenceChange(ViewSizePreferenceKey.self) { newSize in
-                    viewSize = newSize
-                }
-                .onContinuousHover { phase in
-                    switch phase {
-                    case .active(let location):
-                        let w = max(viewSize.width, 1)
-                        let h = max(viewSize.height, 1)
-                        let x = (location.x / w) - 0.5
-                        let y = (location.y / h) - 0.5
-                        
-                        withAnimation(.interactiveSpring()) {
-                            rotation = (x: Double(y * -maxTilt), y: Double(x * maxTilt))
-                            // move shine in response to cursor :D
-                            shineOffset = CGPoint(x: x * shineTravel, y: y * shineTravel)
-                            shineOpacity = shineMaxOpacity
-                        }
-                    case .ended:
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
-                            rotation = (0, 0)
-                            shineOffset = .zero
-                            shineOpacity = 0
-                        }
-                    }
-                }
-        } else {
-            content
-        }
-    }
-}
