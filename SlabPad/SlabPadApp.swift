@@ -8,6 +8,7 @@ extension Notification.Name {
     static let slabPadPopoverNeedsResize = Notification.Name("slabpad.popoverNeedsResize")
     static let slabPadRequestQuit = Notification.Name("slabpad.requestQuit")
     static let slabPadRequestResetAndQuit = Notification.Name("slabpad.resetAndQuit")
+    static let slabPadRequestOpenUpdate = Notification.Name("slabpad.openUpdate")
 }
 
 @main
@@ -84,6 +85,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self,
             selector: #selector(handleResetAndQuitRequest),
             name: .slabPadRequestResetAndQuit,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleOpenUpdateRequest(_:)),
+            name: .slabPadRequestOpenUpdate,
             object: nil
         )
         
@@ -185,6 +193,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.performClose(nil)
         DispatchQueue.main.asyncAfter(deadline: .now() + quitAfterCloseDelay) {
             NSApplication.shared.terminate(nil)
+        }
+    }
+    
+    @objc private func handleOpenUpdateRequest(_ notification: Notification) {
+        guard let url = notification.object as? URL else { return }
+
+        let showPressedStateDelay: TimeInterval = 0.20
+        DispatchQueue.main.asyncAfter(deadline: .now() + showPressedStateDelay) { [weak self] in
+            NSWorkspace.shared.open(url)
+            self?.popover.performClose(nil)
         }
     }
 
