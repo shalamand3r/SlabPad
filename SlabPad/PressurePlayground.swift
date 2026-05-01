@@ -6,7 +6,7 @@ private struct Shockwave {
     var center: CGPoint
 }
 
-private class RenderState {
+private final class RenderState {
     var currentLoc: CGPoint = CGPoint(x: 150, y: 50)
     var currentPres: CGFloat = 0
     var shockwaves: [Shockwave] = []
@@ -45,6 +45,10 @@ struct PressurePlayground: View {
                     let now = timeline.date.timeIntervalSinceReferenceDate
                     let dt = renderState.lastTime == 0 ? 0 : now - renderState.lastTime
                     renderState.lastTime = now
+
+                    func smoothFactor(_ speed: CGFloat) -> CGFloat {
+                        CGFloat(1.0 - exp(-dt * Double(speed)))
+                    }
                     
                     var targetLoc = location
                     var targetPres = pressure
@@ -60,15 +64,16 @@ struct PressurePlayground: View {
                     // smooth crawl interpolation
                     let lerpSpeed: CGFloat = isHovering ? 12.0 : 4.0
                     let presLerpSpeed: CGFloat = isHovering ? 8.0 : 4.0
-                    let lerpFactor = CGFloat(1.0 - exp(-dt * Double(lerpSpeed)))
-                    let presLerpFactor = CGFloat(1.0 - exp(-dt * Double(presLerpSpeed)))
+                    let lerpFactor = smoothFactor(lerpSpeed)
+                    let presLerpFactor = smoothFactor(presLerpSpeed)
                     
                     renderState.currentLoc.x += (targetLoc.x - renderState.currentLoc.x) * lerpFactor
                     renderState.currentLoc.y += (targetLoc.y - renderState.currentLoc.y) * lerpFactor
                     renderState.currentPres += (targetPres - renderState.currentPres) * presLerpFactor
                     
+                    let shockwaveProgressSpeed: CGFloat = 0.8
                     for i in 0..<renderState.shockwaves.count {
-                        renderState.shockwaves[i].progress += CGFloat(dt) * 0.8
+                        renderState.shockwaves[i].progress += CGFloat(dt) * shockwaveProgressSpeed
                     }
                     renderState.shockwaves.removeAll { $0.progress >= 1.0 }
                     
@@ -76,6 +81,10 @@ struct PressurePlayground: View {
                     let drawPres = renderState.currentPres
                     let gridSpacing: CGFloat = 14
                     let t = now
+
+                    let shockwaveRadiusScale: CGFloat = 400.0
+                    let ringWidth: CGFloat = 40.0
+                    let rippleSpeed = 2.0
                     
                     let baseStrength: CGFloat = 8
                     let maxStrength: CGFloat = baseStrength + (40 * drawPres)
@@ -91,7 +100,6 @@ struct PressurePlayground: View {
                             let dy = originalPoint.y - drawLoc.y
                             let dist = sqrt(dx*dx + dy*dy)
                             
-                            let rippleSpeed = 2.0
                             let rippleBase = CGFloat(sin(Double(dist) * 0.04 - t * Double(rippleSpeed))) * (1.0 + drawPres * 2.0)
 
                             let rippleStabilityFactor = min(dist / 30.0, 1.0)
@@ -107,11 +115,10 @@ struct PressurePlayground: View {
                                 let swDy = originalPoint.y - shockwave.center.y
                                 let swDist = sqrt(swDx*swDx + swDy*swDy)
                                 
-                                let shockwaveRadius = shockwave.progress * 400.0
+                                let shockwaveRadius = shockwave.progress * shockwaveRadiusScale
                                 let shockwaveIntensity = 1.0 - shockwave.progress
                                 
                                 let distFromRing = abs(swDist - shockwaveRadius)
-                                let ringWidth: CGFloat = 40.0
                                 if distFromRing < ringWidth {
                                     let swWarp = CGFloat(cos((distFromRing / ringWidth) * .pi / 2)) * shockwaveIntensity * 20.0
                                     let angle = atan2(swDy, swDx)
@@ -143,12 +150,12 @@ struct PressurePlayground: View {
                                     let swDy = p.y - shockwave.center.y
                                     let swDist = sqrt(swDx*swDx + swDy*swDy)
                                     
-                                    let shockwaveRadius = shockwave.progress * 400.0
+                                    let shockwaveRadius = shockwave.progress * shockwaveRadiusScale
                                     let shockwaveIntensity = 1.0 - shockwave.progress
                                     
                                     let distFromRing = abs(swDist - shockwaveRadius)
-                                    if distFromRing < 40 {
-                                        swHighlight += CGFloat(cos((distFromRing / 40.0) * .pi / 2)) * shockwaveIntensity
+                                    if distFromRing < ringWidth {
+                                        swHighlight += CGFloat(cos((distFromRing / ringWidth) * .pi / 2)) * shockwaveIntensity
                                     }
                                 }
                                 
