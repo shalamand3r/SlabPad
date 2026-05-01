@@ -169,8 +169,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     
     @objc private func handleResetAndQuitRequest() {
         resetAppDefaultsForTesting()
-
-        closePopoverAndQuit(relaunch: true)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.closePopoverAndQuit(relaunch: true)
+        }
     }
     
     private func resetAppDefaultsForTesting() {
