@@ -161,7 +161,7 @@ struct PressurePlayground: View {
                                 
                                 let style = StrokeStyle(lineWidth: 0.3 + intensity * 1.7 + swHighlight * 2.0, lineCap: .round, lineJoin: .round)
                                 let alpha = (0.08 + intensity * 0.45) + swHighlight * 0.5
-                                let color = Color.interpolate(.slabPadAccent, .red, amount: swHighlight)
+                                let color = Color.interpolate(.slabPadAccent, Color.slabPadAccent.dynamicVariation, amount: swHighlight)
                                 
                                 context.stroke(path, with: .color(color.opacity(alpha)), style: style)
                             }
@@ -317,10 +317,27 @@ class PressureNSView: NSView {
 
 private extension Color {
     static var slabPadAccent: Color {
+        .accentColor
+    }
+
+    var dynamicVariation: Color {
         if #available(macOS 12.0, *) {
-            return Color(nsColor: NSColor.controlAccentColor)
+            let ns = NSColor(self).usingColorSpace(.deviceRGB) ?? .black
+            var h: CGFloat = 0
+            var s: CGFloat = 0
+            var b: CGFloat = 0
+            var a: CGFloat = 0
+            ns.getHue(&h, saturation: &s, brightness: &b, alpha: &a)
+            
+            let isDarkMode = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            
+            if isDarkMode {
+                return Color(nsColor: NSColor(hue: h, saturation: max(0, s - 0.2), brightness: min(1, b + 0.25), alpha: a))
+            } else {
+                return Color(nsColor: NSColor(hue: h, saturation: min(1, s + 0.05), brightness: max(0, b - 0.2), alpha: a))
+            }
         }
-        return Color.accentColor
+        return .black
     }
 
     static func interpolate(_ color1: Color, _ color2: Color, amount: CGFloat) -> Color {
