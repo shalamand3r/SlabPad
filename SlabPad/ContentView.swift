@@ -19,12 +19,12 @@ struct ContentView: View {
     @State private var showSettings = false
     @State private var showReleaseNotes = false
     @State private var showPressurePlayground = false
-    @State private var releaseNotesOpenedByHover = false
-    @State private var hoverRestoreShowSettings = false
-    @State private var hoverRestoreShowReleaseNotes = false
     @State private var isHoveringUpdateBadge = false
-    @State private var updatePulse = false
+    @State private var updateHoverFlipWorkItem: DispatchWorkItem?
+    @State private var updatePressed = false
     @State private var quitPressed = false
+    @State private var isHoveringBottomHint = false
+    @State private var hintFlashIsArrow = false
     @AppStorage("showBottomHint") private var showBottomHint = true
     @State private var resetHoldTriggered = false
     @State private var isPowerPressActive = false
@@ -34,6 +34,8 @@ struct ContentView: View {
     @State private var powerHoldDidStartProgress = false
     @State private var ignoreNextPowerTap = false
     
+    private let spring = Animation.spring(response: 0.5, dampingFraction: 0.82)
+
     init(initialShowSettings: Bool = false, initialShowReleaseNotes: Bool = false) {
         _showSettings = State(initialValue: initialShowSettings)
         _showReleaseNotes = State(initialValue: initialShowReleaseNotes)
@@ -78,9 +80,8 @@ struct ContentView: View {
         return "v\(latestTag)"
     }
     
-    private var titleVersionText: String {
-        guard manager.hasUpdateAvailable, isHoveringUpdateBadge else { return appVersionText }
-        return "\(appVersionText) → \(latestVersionText)"
+    private var shouldShowLatestInVersionPill: Bool {
+        manager.hasUpdateAvailable && (isHoveringUpdateBadge || showReleaseNotes)
     }
 
     var body: some View {
@@ -92,21 +93,15 @@ struct ContentView: View {
         .fixedSize(horizontal: false, vertical: true)
         .padding(.bottom, 14)
         .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow))
-        .onChange(of: showSettings) { _ in
-            NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
-        }
-        .onChange(of: showReleaseNotes) { _ in
-            NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
-        }
-        .onChange(of: showPressurePlayground) { _ in
-            NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
-        }
+        .onChange(of: showSettings) { _ in requestPopoverResize() }
+        .onChange(of: showReleaseNotes) { _ in requestPopoverResize() }
+        .onChange(of: showPressurePlayground) { _ in requestPopoverResize() }
     }
 
     private var headerSection: some View {
         HStack(spacing: 6) {
             Button(action: {
-                withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
+                withAnimation(spring) {
                     showPressurePlayground.toggle()
                 }
             }) {
@@ -114,69 +109,89 @@ struct ContentView: View {
                     .font(.system(.title3, design: .rounded))
                     .fontWeight(.bold)
                     .foregroundColor(.primary)
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
             }
             .buttonStyle(PopButtonStyle())
             
             Button(action: {
-                withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
-                    showReleaseNotes.toggle()
-                    if showReleaseNotes {
-                        showSettings = false
-                        showPressurePlayground = false
+                if manager.hasUpdateAvailable {
+                    withAnimation(spring) {
+                        showReleaseNotes.toggle()
+                        if showReleaseNotes {
+                            showSettings = false
+                            showPressurePlayground = false
+                        }
                     }
+                } else {
+                    manager.checkForUpdate()
                 }
-                releaseNotesOpenedByHover = false
-                manager.checkForUpdate()
-                manager.fetchCurrentReleaseNotes()
             }) {
-                Text(titleVersionText)
-                    .font(.system(size: 10, weight: .bold, design: .monospaced))
-                    .foregroundColor(showReleaseNotes ? .slabPadAccent : .secondary.opacity(0.6))
-                    .padding(.horizontal, 6)
-                    .padding(.vertical, 2)
-                    .background(
-                        Capsule()
-                            .fill(showReleaseNotes ? Color.slabPadAccent.opacity(0.15) : Color.primary.opacity(0.06))
-                            .overlay(Capsule().stroke(showReleaseNotes ? Color.slabPadAccent.opacity(0.2) : Color.primary.opacity(0.1), lineWidth: 0.5))
-                    )
-                    .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+                VersionPillLabel(
+                    current: appVersionText,
+                    latest: latestVersionText,
+                    showLatest: shouldShowLatestInVersionPill
+                )
+                .font(.system(size: 10, weight: .bold, design: .monospaced))
+                .lineLimit(1)
+                .layoutPriority(1)
+                .foregroundColor(showReleaseNotes ? .slabPadAccent : .secondary.opacity(0.6))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(
+                    Capsule()
+                        .fill(showReleaseNotes ? Color.slabPadAccent.opacity(0.15) : Color.primary.opacity(0.06))
+                        .overlay(Capsule().stroke(showReleaseNotes ? Color.slabPadAccent.opacity(0.2) : Color.primary.opacity(0.1), lineWidth: 0.5))
+                )
+                .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
+                .animation(.easeInOut(duration: 0.18), value: shouldShowLatestInVersionPill)
             }
             .buttonStyle(PopButtonStyle())
             Spacer(minLength: 8)
-            if manager.hasUpdateAvailable, let updateURL = manager.latestReleaseURL {
+            if manager.hasUpdateAvailable, let downloadURL = manager.latestDownloadZipURL {
                 Button {
-                    NSWorkspace.shared.open(updateURL)
+                    updatePressed = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+                        NotificationCenter.default.post(name: .slabPadRequestOpenUpdate, object: downloadURL)
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                        updatePressed = false
+                    }
                 } label: {
                     Image(systemName: "arrow.down.circle.fill")
                         .font(.system(size: 14, weight: .semibold))
                         .foregroundColor(.green)
-                        .opacity(updatePulse ? 0.55 : 1.0)
+                        .frame(width: 28, height: 28)
+                        .background(updatePressed ? Color.green.opacity(0.18) : Color.clear)
+                        .cornerRadius(8)
                 }
                 .help(Text("Click to download the latest version!"))
                 .buttonStyle(PopButtonStyle())
                 .onHover { hovering in
-                    isHoveringUpdateBadge = hovering
-                    if hovering, manager.hasUpdateAvailable {
-                        if !showReleaseNotes {
-                            hoverRestoreShowSettings = showSettings
-                            hoverRestoreShowReleaseNotes = showReleaseNotes
-                            releaseNotesOpenedByHover = true
-                            withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
-                                showReleaseNotes = true
-                                showSettings = false
-                            }
-                        }
-                    } else if !hovering, releaseNotesOpenedByHover {
-                        withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
-                            showSettings = hoverRestoreShowSettings
-                            showReleaseNotes = hoverRestoreShowReleaseNotes
-                        }
-                        releaseNotesOpenedByHover = false
+                    withAnimation(.easeInOut(duration: 0.18)) {
+                        isHoveringUpdateBadge = hovering
                     }
+
+                    updateHoverFlipWorkItem?.cancel()
+                    updateHoverFlipWorkItem = nil
+
+                    guard hovering, manager.hasUpdateAvailable else { return }
+
+                    let workItem = DispatchWorkItem {
+                        guard isHoveringUpdateBadge, manager.hasUpdateAvailable else { return }
+
+                        withAnimation(spring) {
+                            showReleaseNotes = true
+                            showSettings = false
+                            showPressurePlayground = false
+                        }
+                    }
+                    updateHoverFlipWorkItem = workItem
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: workItem)
                 }
             }
             Button(action: {
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                withAnimation(spring) {
                     showSettings.toggle()
                     if showSettings {
                         showReleaseNotes = false
@@ -200,7 +215,7 @@ struct ContentView: View {
                     return
                 }
                 
-                withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                withAnimation(spring) {
                     quitPressed = true
                     showSettings = false
                     showReleaseNotes = false
@@ -239,16 +254,8 @@ struct ContentView: View {
         .padding(.bottom, 6)
         .layoutPriority(1)
         .onChange(of: manager.hasUpdateAvailable) { hasUpdateAvailable in
-            if hasUpdateAvailable {
-                updatePulse = true
-            } else {
-                updatePulse = false
-            }
+            if !hasUpdateAvailable { updatePressed = false }
         }
-        .onAppear {
-            updatePulse = manager.hasUpdateAvailable
-        }
-        .modifier(UpdatePulseDriver(hasUpdateAvailable: manager.hasUpdateAvailable, updatePulse: $updatePulse))
     }
 
     private var powerHoldRing: some View {
@@ -273,22 +280,18 @@ struct ContentView: View {
         isPowerPressActive = true
         powerHoldDidStartProgress = false
 
-        powerHoldStartWorkItem?.cancel()
-        powerHoldCompleteWorkItem?.cancel()
-        powerHoldStartWorkItem = nil
-        powerHoldCompleteWorkItem = nil
-
-        if !quitPressed {
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                quitPressed = true
-            }
-        }
-
+        cancelPowerHoldWorkItems()
         powerHoldProgress = 0
 
         let startWork = DispatchWorkItem {
             guard isPowerPressActive, !resetHoldTriggered else { return }
             powerHoldDidStartProgress = true
+
+            if !quitPressed {
+                withAnimation(spring) {
+                    quitPressed = true
+                }
+            }
 
             withAnimation(.linear(duration: 2.0)) {
                 powerHoldProgress = 1
@@ -311,11 +314,7 @@ struct ContentView: View {
     private func endPowerHold() {
         isPowerPressActive = false
 
-        powerHoldStartWorkItem?.cancel()
-        powerHoldCompleteWorkItem?.cancel()
-        powerHoldStartWorkItem = nil
-        powerHoldCompleteWorkItem = nil
-
+        cancelPowerHoldWorkItems()
         if powerHoldDidStartProgress && !resetHoldTriggered {
             ignoreNextPowerTap = true
             DispatchQueue.main.async {
@@ -328,10 +327,21 @@ struct ContentView: View {
             withAnimation(.easeOut(duration: 0.12)) {
                 powerHoldProgress = 0
             }
-            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+            withAnimation(spring) {
                 quitPressed = false
             }
         }
+    }
+    
+    private func cancelPowerHoldWorkItems() {
+        powerHoldStartWorkItem?.cancel()
+        powerHoldCompleteWorkItem?.cancel()
+        powerHoldStartWorkItem = nil
+        powerHoldCompleteWorkItem = nil
+    }
+    
+    private func requestPopoverResize() {
+        NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
     }
 
     private var mainInterface: some View {
@@ -385,46 +395,74 @@ struct ContentView: View {
             .padding(.top, 2)
 
             if showBottomHint {
-                HStack(spacing: 8) {
-                    HStack(spacing: 4) {
-                        // sync icon with menubar state
-                        let leftClick: LocalizedStringKey = "Left-click"
-                        let rightClick: LocalizedStringKey = "Right-click"
-                        Text(manager.invertClicks ? leftClick : rightClick)
-                        Image(systemName: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
-                            .opacity(0.7)
-                            .animation(.easeInOut(duration: 0.18), value: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
-                        Text("to instantly toggle haptics")
-                    }
-
-                    Spacer(minLength: 0)
-
-                    Button {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-                            showBottomHint = false
-                        }
-                        DispatchQueue.main.async {
-                            NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
-                        }
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 10, weight: .semibold))
-                            .foregroundColor(.secondary.opacity(0.7))
-                            .frame(width: 20, height: 18)
-                            .background(Color.primary.opacity(0.05))
-                            .cornerRadius(6)
-                    }
-                    .buttonStyle(PopButtonStyle())
-                }
-                .font(.system(size: 10))
-                .foregroundColor(.secondary)
-                .padding(.horizontal, 14)
-                .padding(.top, 8)
-                .transition(.opacity.combined(with: .move(edge: .bottom)))
+                topHintView
+                    .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
         }
         .clipped()
         .animation(.spring(response: 0.55, dampingFraction: 0.82), value: activePanel)
+    }
+
+    private var topHintView: some View {
+        HStack(spacing: 6) {
+            Button {
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+                    showBottomHint = false
+                }
+                DispatchQueue.main.async { requestPopoverResize() }
+            } label: {
+                Image(systemName: hintIconName)
+                    .font(.system(size: 11, weight: .bold))
+                    .foregroundColor(.secondary.opacity(isHoveringBottomHint ? 0.75 : 0.55))
+                    .frame(width: 22, height: 22)
+            }
+            .buttonStyle(PopButtonStyle())
+            .padding(.leading, 10)
+
+            HStack(spacing: 4) {
+                let leftClick: LocalizedStringKey = "Left-click"
+                let rightClick: LocalizedStringKey = "Right-click"
+                Text(manager.invertClicks ? leftClick : rightClick)
+                    .fontWeight(.semibold)
+                        Image(systemName: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
+                            .opacity(0.75)
+                            .animation(.easeInOut(duration: 0.18), value: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
+                        Text("to instantly toggle haptics")
+                    }
+                    .font(.system(size: 10))
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+            .minimumScaleFactor(0.85)
+            .truncationMode(.tail)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 8)
+        .background(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .fill(Color.primary.opacity(0.035))
+                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.primary.opacity(0.08), lineWidth: 1))
+        )
+        .padding(.horizontal, 14)
+        .padding(.top, 8)
+        .onHover { hovering in
+            withAnimation(.easeInOut(duration: 0.12)) {
+                isHoveringBottomHint = hovering
+            }
+        }
+        .onReceive(
+            Timer.publish(every: 0.85, on: .main, in: .common).autoconnect()
+        ) { _ in
+            guard showBottomHint, !isHoveringBottomHint else { return }
+            withAnimation(.easeInOut(duration: 0.18)) {
+                hintFlashIsArrow.toggle()
+            }
+        }
+    }
+
+    private var hintIconName: String {
+        if isHoveringBottomHint { return "xmark" }
+        return hintFlashIsArrow ? "arrow.up" : "lightbulb.fill"
     }
     
     private var settingsSection: some View {
@@ -478,36 +516,24 @@ struct ContentView: View {
         .background(Color.primary.opacity(0.05))
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
-        .modifier(FloatingPerspectiveModifier(cornerRadius: 16, maxTilt: 5, shineMaxOpacity: 0.11, shineTravel: 120, perspective: 0.18))
         .padding(.horizontal, 14)
         .layoutPriority(1)
     }
 
     private var releaseNotesSection: some View {
-        let shouldShowLatest = manager.hasUpdateAvailable && isHoveringUpdateBadge
-        
-        let currentNotes = normalizeNewlines(manager.currentReleaseNotesMarkdown)
         let latestNotes = normalizeNewlines(manager.latestReleaseNotesMarkdown)
-        let currentChangelog = extractChangelogMarkdown(from: currentNotes) ?? currentNotes
         let latestChangelog = extractChangelogMarkdown(from: latestNotes) ?? latestNotes
         
-        let titleCurrent: LocalizedStringKey = "Release Notes"
         let titleLatest: LocalizedStringKey = "Changelog"
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
-                ZStack(alignment: .leading) {
-                    Text(titleCurrent)
-                        .opacity(shouldShowLatest ? 0 : 1)
-                    Text(titleLatest)
-                        .opacity(shouldShowLatest ? 1 : 0)
-                }
-                .animation(.easeInOut(duration: 0.18), value: shouldShowLatest)
+                Text(titleLatest)
                 .font(.system(size: 13, weight: .bold))
                 .foregroundColor(.secondary)
                 Spacer(minLength: 8)
 
-                if let url = manager.latestReleaseURL, !shouldShowLatest {
+                if let url = manager.latestReleaseURL {
                     Button {
                         NSWorkspace.shared.open(url)
                     } label: {
@@ -523,7 +549,6 @@ struct ContentView: View {
                     withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
                         showReleaseNotes = false
                     }
-                    releaseNotesOpenedByHover = false
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 11, weight: .bold))
@@ -538,36 +563,18 @@ struct ContentView: View {
 
             Divider().opacity(0.2)
 
-            ZStack {
-                ScrollView {
-                    ChangelogBulletsView(markdown: currentChangelog)
-                        .padding(.top, 2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .opacity(shouldShowLatest ? 0 : 1)
-                
-                ScrollView {
-                    ChangelogBulletsView(markdown: latestChangelog)
-                        .padding(.top, 2)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .opacity(shouldShowLatest ? 1 : 0)
+            ScrollView {
+                ChangelogBulletsView(markdown: latestChangelog)
+                    .padding(.top, 2)
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .animation(.easeInOut(duration: 0.18), value: shouldShowLatest)
         }
         .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(Color.primary.opacity(0.05))
         .cornerRadius(16)
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
-        .modifier(FloatingPerspectiveModifier(cornerRadius: 16, maxTilt: 5, shineMaxOpacity: 0.11, shineTravel: 120, perspective: 0.18))
         .padding(.horizontal, 14)
-    }
-
-    private func versionPillText(for tag: String?) -> String {
-        let raw = (tag ?? "?").trimmingCharacters(in: .whitespacesAndNewlines)
-        if raw.isEmpty { return "v?" }
-        return raw.hasPrefix("v") ? raw : "v\(raw)"
     }
 
     private func extractChangelogMarkdown(from markdown: String?) -> String? {
@@ -595,6 +602,38 @@ struct ContentView: View {
         return value
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
+    }
+
+    private struct VersionPillLabel: View {
+        let current: String
+        let latest: String
+        let showLatest: Bool
+
+        var body: some View {
+            Group {
+                if showLatest {
+                    pillContent(showLatest: true)
+                        .transition(.opacity)
+                } else {
+                    pillContent(showLatest: false)
+                        .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.18), value: showLatest)
+        }
+
+        @ViewBuilder
+        private func pillContent(showLatest: Bool) -> some View {
+            HStack(spacing: 4) {
+                Text(current)
+                if showLatest {
+                    HStack(spacing: 4) {
+                        Text("→")
+                        Text(latest)
+                    }
+                }
+            }
+        }
     }
     
     private var mainButtonSection: some View {
@@ -755,45 +794,6 @@ private struct ChangelogBulletsView: View {
     }
 }
 
-private struct UpdatePulseDriver: ViewModifier {
-    let hasUpdateAvailable: Bool
-    @Binding var updatePulse: Bool
-    
-    func body(content: Content) -> some View {
-        if #available(macOS 12.0, *) {
-            content.task(id: hasUpdateAvailable) {
-                guard hasUpdateAvailable else {
-                    updatePulse = false
-                    return
-                }
-
-                while !Task.isCancelled && hasUpdateAvailable {
-                    try? await Task.sleep(nanoseconds: 1_450_000_000)
-                    guard hasUpdateAvailable, !Task.isCancelled else { break }
-                    await MainActor.run {
-                        withAnimation(.easeInOut(duration: 1.1)) {
-                            updatePulse.toggle()
-                        }
-                    }
-                }
-            }
-        } else {
-            content.onReceive(
-                Timer.publish(every: 1.45, on: .main, in: .common).autoconnect()
-            ) { _ in
-                guard hasUpdateAvailable else {
-                    if updatePulse { updatePulse = false }
-                    return
-                }
-                
-                withAnimation(.easeInOut(duration: 1.1)) {
-                    updatePulse.toggle()
-                }
-            }
-        }
-    }
-}
-
 struct VisualEffectView: NSViewRepresentable {
     let material: NSVisualEffectView.Material
     let blendingMode: NSVisualEffectView.BlendingMode
@@ -904,11 +904,5 @@ private struct FloatingPerspectiveModifier: ViewModifier {
         } else {
             content
         }
-    }
-}
-
-private struct ParallaxEffect: ViewModifier {
-    func body(content: Content) -> some View {
-        content
     }
 }

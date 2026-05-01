@@ -8,6 +8,7 @@ extension Notification.Name {
     static let slabPadPopoverNeedsResize = Notification.Name("slabpad.popoverNeedsResize")
     static let slabPadRequestQuit = Notification.Name("slabpad.requestQuit")
     static let slabPadRequestResetAndQuit = Notification.Name("slabpad.resetAndQuit")
+    static let slabPadRequestOpenUpdate = Notification.Name("slabpad.openUpdate")
 }
 
 @main
@@ -28,13 +29,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusBarItem: NSStatusItem!
     private var popover: NSPopover!
     private var cancellables = Set<AnyCancellable>()
+
+    private let popoverWidth: CGFloat = 288
+    private let maxPopoverHeight: CGFloat = 500
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // hide dock icon
         NSApp.setActivationPolicy(.accessory)
         
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 288, height: 10)
+        popover.contentSize = NSSize(width: popoverWidth, height: 10)
         popover.behavior = .transient
         // bridge swiftui to appkit popover
         popover.contentViewController = NSHostingController(rootView: ContentView())
@@ -81,6 +85,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self,
             selector: #selector(handleResetAndQuitRequest),
             name: .slabPadRequestResetAndQuit,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleOpenUpdateRequest(_:)),
+            name: .slabPadRequestOpenUpdate,
             object: nil
         )
         
@@ -144,29 +155,29 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         view.layoutSubtreeIfNeeded()
 
         var size = view.fittingSize
-        size.width = 288
-        size.height = max(10, min(500, size.height))
+        size.width = popoverWidth
+        size.height = max(10, min(maxPopoverHeight, size.height))
         popover.contentSize = size
     }
 
     @objc private func handleQuitRequest() {
         let showPressedStateDelay: TimeInterval = 0.20
         DispatchQueue.main.asyncAfter(deadline: .now() + showPressedStateDelay) { [weak self] in
-            self?.closePopoverAndQuit()
+            self?.closePopoverAndQuit(relaunch: false)
         }
     }
     
     @objc private func handleResetAndQuitRequest() {
         resetAppDefaultsForTesting()
 
-        closePopoverAndQuit()
+        closePopoverAndQuit(relaunch: true)
     }
     
     private func resetAppDefaultsForTesting() {
         let defaults = UserDefaults.standard
 
         // keep language/locale behavior intact; only reset our own app prefs
-        let keysToReset = [
+        let keysToReset: [String] = [
             "disableOnLaunch",
             "reEnableOnQuit",
             "invertClicks",
@@ -174,18 +185,35 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             "showBottomHint",
         ]
 
-        for key in keysToReset {
-            defaults.removeObject(forKey: key)
-        }
-
-        defaults.synchronize()
+        keysToReset.forEach(defaults.removeObject(forKey:))
     }
     
-    private func closePopoverAndQuit() {
+    private func closePopoverAndQuit(relaunch: Bool) {
         let quitAfterCloseDelay: TimeInterval = 0.08
         popover.performClose(nil)
-        DispatchQueue.main.asyncAfter(deadline: .now() + quitAfterCloseDelay) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + quitAfterCloseDelay) { [weak self] in
+            if relaunch {
+                self?.relaunchApp()
+            }
             NSApplication.shared.terminate(nil)
+        }
+    }
+    
+    private func relaunchApp() {
+        let url = Bundle.main.bundleURL
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = ["-n", url.path]
+        try? process.run()
+    }
+    
+    @objc private func handleOpenUpdateRequest(_ notification: Notification) {
+        guard let url = notification.object as? URL else { return }
+
+        let showPressedStateDelay: TimeInterval = 0.20
+        DispatchQueue.main.asyncAfter(deadline: .now() + showPressedStateDelay) { [weak self] in
+            NSWorkspace.shared.open(url)
+            self?.popover.performClose(nil)
         }
     }
 

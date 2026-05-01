@@ -31,4 +31,4 @@ Download the latest version from **[Releases](https://github.com/shalamand3r/Sla
 
 ---
 
-###### Note: This does not appear to work on external Magic Trackpads :(
+###### Note: Haptics will reset if your Mac goes to sleep. SlabPad will automatically re-disable haptics when your Mac wakes up (if you had previously disabled haptics before your Mac had gone to sleep), but only if SlabPad remains open. Also, SlabPad does not appear to work on external Magic Trackpads :(

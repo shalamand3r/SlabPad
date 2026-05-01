@@ -1,11 +1,15 @@
 import SwiftUI
 import AppKit
 
-private class RenderState {
+private struct Shockwave {
+    var progress: CGFloat
+    var center: CGPoint
+}
+
+private final class RenderState {
     var currentLoc: CGPoint = CGPoint(x: 150, y: 50)
     var currentPres: CGFloat = 0
-    var boomAmount: CGFloat = 0
-    var targetBoom: CGFloat = 0
+    var shockwaves: [Shockwave] = []
     var lastTime: TimeInterval = 0
 }
 
@@ -30,7 +34,7 @@ struct PressurePlayground: View {
                 }
                 
                 if didForceClick && manager.isHapticsEnabled {
-                    renderState.targetBoom = 1.0
+                    renderState.shockwaves.append(Shockwave(progress: 0.0, center: renderState.currentLoc))
                 }
                 
                 self.pressure = pres
@@ -41,6 +45,10 @@ struct PressurePlayground: View {
                     let now = timeline.date.timeIntervalSinceReferenceDate
                     let dt = renderState.lastTime == 0 ? 0 : now - renderState.lastTime
                     renderState.lastTime = now
+
+                    func smoothFactor(_ speed: CGFloat) -> CGFloat {
+                        CGFloat(1.0 - exp(-dt * Double(speed)))
+                    }
                     
                     var targetLoc = location
                     var targetPres = pressure
@@ -56,29 +64,31 @@ struct PressurePlayground: View {
                     // smooth crawl interpolation
                     let lerpSpeed: CGFloat = isHovering ? 12.0 : 4.0
                     let presLerpSpeed: CGFloat = isHovering ? 8.0 : 4.0
-                    let lerpFactor = CGFloat(1.0 - exp(-dt * Double(lerpSpeed)))
-                    let presLerpFactor = CGFloat(1.0 - exp(-dt * Double(presLerpSpeed)))
+                    let lerpFactor = smoothFactor(lerpSpeed)
+                    let presLerpFactor = smoothFactor(presLerpSpeed)
                     
                     renderState.currentLoc.x += (targetLoc.x - renderState.currentLoc.x) * lerpFactor
                     renderState.currentLoc.y += (targetLoc.y - renderState.currentLoc.y) * lerpFactor
                     renderState.currentPres += (targetPres - renderState.currentPres) * presLerpFactor
                     
-                    if renderState.targetBoom > 0 {
-                        renderState.boomAmount += (renderState.targetBoom - renderState.boomAmount) * CGFloat(1.0 - exp(-dt * 15.0))
-                        if renderState.boomAmount > 0.95 { renderState.targetBoom = 0 }
-                    } else {
-                        renderState.boomAmount += (0 - renderState.boomAmount) * CGFloat(1.0 - exp(-dt * 9.0))
+                    let shockwaveProgressSpeed: CGFloat = 0.8
+                    for i in 0..<renderState.shockwaves.count {
+                        renderState.shockwaves[i].progress += CGFloat(dt) * shockwaveProgressSpeed
                     }
+                    renderState.shockwaves.removeAll { $0.progress >= 1.0 }
                     
                     let drawLoc = renderState.currentLoc
                     let drawPres = renderState.currentPres
-                    let drawBoom = renderState.boomAmount
                     let gridSpacing: CGFloat = 14
                     let t = now
+
+                    let shockwaveRadiusScale: CGFloat = 400.0
+                    let ringWidth: CGFloat = 40.0
+                    let rippleSpeed = 2.0
                     
-                    let baseStrength: CGFloat = 8 + (drawBoom * 12)
+                    let baseStrength: CGFloat = 8
                     let maxStrength: CGFloat = baseStrength + (40 * drawPres)
-                    let influenceRadius: CGFloat = 60 + (drawPres * 60) + (drawBoom * 80)
+                    let influenceRadius: CGFloat = 60 + (drawPres * 60)
                     
                     var gridPoints: [[CGPoint]] = []
                     
@@ -90,16 +100,32 @@ struct PressurePlayground: View {
                             let dy = originalPoint.y - drawLoc.y
                             let dist = sqrt(dx*dx + dy*dy)
                             
-                            let rippleSpeed = 2.0 + (drawBoom * 5.0)
-                            let rippleBase = CGFloat(sin(Double(dist) * 0.04 - t * Double(rippleSpeed))) * (1.0 + drawPres * 2.0 + drawBoom * 6.0)
+                            let rippleBase = CGFloat(sin(Double(dist) * 0.04 - t * Double(rippleSpeed))) * (1.0 + drawPres * 2.0)
 
                             let rippleStabilityFactor = min(dist / 30.0, 1.0)
                             let ripple = rippleBase * rippleStabilityFactor
 
                             let warp = CGFloat(exp(-Double(dist * dist) / Double(2.0 * influenceRadius * influenceRadius)))
 
-                            let displacedX = x - (dx * warp * maxStrength / 50.0)
-                            let displacedY = y - (dy * warp * maxStrength / 50.0)
+                            var displacedX = x - (dx * warp * maxStrength / 50.0)
+                            var displacedY = y - (dy * warp * maxStrength / 50.0)
+                            
+                            for shockwave in renderState.shockwaves {
+                                let swDx = originalPoint.x - shockwave.center.x
+                                let swDy = originalPoint.y - shockwave.center.y
+                                let swDist = sqrt(swDx*swDx + swDy*swDy)
+                                
+                                let shockwaveRadius = shockwave.progress * shockwaveRadiusScale
+                                let shockwaveIntensity = 1.0 - shockwave.progress
+                                
+                                let distFromRing = abs(swDist - shockwaveRadius)
+                                if distFromRing < ringWidth {
+                                    let swWarp = CGFloat(cos((distFromRing / ringWidth) * .pi / 2)) * shockwaveIntensity * 20.0
+                                    let angle = atan2(swDy, swDx)
+                                    displacedX += cos(angle) * swWarp
+                                    displacedY += sin(angle) * swWarp
+                                }
+                            }
 
                             row.append(CGPoint(x: displacedX, y: displacedY + ripple * warp))
                         }
@@ -110,8 +136,7 @@ struct PressurePlayground: View {
                         for xIndex in 0..<gridPoints[yIndex].count {
                             let p = gridPoints[yIndex][xIndex]
                             
-                            if xIndex < gridPoints[yIndex].count - 1 {
-                                let nextP = gridPoints[yIndex][xIndex + 1]
+                            func drawLine(to nextP: CGPoint) {
                                 var path = Path()
                                 path.move(to: p)
                                 path.addLine(to: nextP)
@@ -119,31 +144,34 @@ struct PressurePlayground: View {
                                 let dist = sqrt(pow(p.x - drawLoc.x, 2) + pow(p.y - drawLoc.y, 2))
                                 let intensity = CGFloat(exp(-Double(dist * dist) / Double(2.0 * influenceRadius * influenceRadius)))
                                 
-                                let style = StrokeStyle(lineWidth: 0.3 + intensity * 1.7, lineCap: .round, lineJoin: .round)
+                                var swHighlight: CGFloat = 0
+                                for shockwave in renderState.shockwaves {
+                                    let swDx = p.x - shockwave.center.x
+                                    let swDy = p.y - shockwave.center.y
+                                    let swDist = sqrt(swDx*swDx + swDy*swDy)
+                                    
+                                    let shockwaveRadius = shockwave.progress * shockwaveRadiusScale
+                                    let shockwaveIntensity = 1.0 - shockwave.progress
+                                    
+                                    let distFromRing = abs(swDist - shockwaveRadius)
+                                    if distFromRing < ringWidth {
+                                        swHighlight += CGFloat(cos((distFromRing / ringWidth) * .pi / 2)) * shockwaveIntensity
+                                    }
+                                }
                                 
-                                let fadeFactor = 1.0 - (drawBoom * 0.5)
-                                let alpha = (0.08 + intensity * 0.45) * fadeFactor
+                                let style = StrokeStyle(lineWidth: 0.3 + intensity * 1.7 + swHighlight * 2.0, lineCap: .round, lineJoin: .round)
+                                let alpha = (0.08 + intensity * 0.45) + swHighlight * 0.5
+                                let color = Color.interpolate(.slabPadAccent, .red, amount: swHighlight)
                                 
-                                let color = Color.interpolate(.slabPadAccent, .red, amount: pow(drawBoom, 1.2))
                                 context.stroke(path, with: .color(color.opacity(alpha)), style: style)
                             }
                             
+                            if xIndex < gridPoints[yIndex].count - 1 {
+                                drawLine(to: gridPoints[yIndex][xIndex + 1])
+                            }
+                            
                             if yIndex < gridPoints.count - 1 {
-                                let belowP = gridPoints[yIndex + 1][xIndex]
-                                var path = Path()
-                                path.move(to: p)
-                                path.addLine(to: belowP)
-                                
-                                let dist = sqrt(pow(p.x - drawLoc.x, 2) + pow(p.y - drawLoc.y, 2))
-                                let intensity = CGFloat(exp(-Double(dist * dist) / Double(2.0 * influenceRadius * influenceRadius)))
-                                
-                                let style = StrokeStyle(lineWidth: 0.3 + intensity * 1.7, lineCap: .round, lineJoin: .round)
-                                
-                                let fadeFactor = 1.0 - (drawBoom * 0.5)
-                                let alpha = (0.08 + intensity * 0.45) * fadeFactor
-                                
-                                let color = Color.interpolate(.slabPadAccent, .red, amount: pow(drawBoom, 1.2))
-                                context.stroke(path, with: .color(color.opacity(alpha)), style: style)
+                                drawLine(to: gridPoints[yIndex + 1][xIndex])
                             }
                         }
                     }
@@ -199,6 +227,8 @@ struct PressureSensitiveArea: NSViewRepresentable {
 }
 
 class PressureNSView: NSView {
+    override var isFlipped: Bool { true }
+    
     var onPressureUpdate: ((CGPoint?, CGFloat, Bool) -> Void)?
     private var currentPressure: CGFloat = 0
     private var lastStage: Int = 0
@@ -276,10 +306,9 @@ class PressureNSView: NSView {
 
     private func updateLocation(with event: NSEvent, didForceClick: Bool = false) {
         let location = convert(event.locationInWindow, from: nil)
-        let flippedLocation = CGPoint(x: location.x, y: bounds.height - location.y)
         
         if bounds.contains(location) {
-            onPressureUpdate?(flippedLocation, currentPressure, didForceClick)
+            onPressureUpdate?(location, currentPressure, didForceClick)
         } else {
             onPressureUpdate?(nil, 0, false)
         }
