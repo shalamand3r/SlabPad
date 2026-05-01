@@ -29,6 +29,7 @@ struct ContentView: View {
     @State private var powerHoldProgress: CGFloat = 0
     @State private var powerHoldDidStartProgress = false
     @State private var ignoreNextPowerTap = false
+    @State private var showUpToDateToast = false
     
     private let spring = Animation.spring(response: 0.5, dampingFraction: 0.82)
 
@@ -89,6 +90,15 @@ struct ContentView: View {
         .fixedSize(horizontal: false, vertical: true)
         .padding(.bottom, 14)
         .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow))
+        .overlay(
+            Group {
+                if showUpToDateToast {
+                    upToDateToast
+                        .padding(.bottom, 20)
+                }
+            },
+            alignment: .bottom
+        )
         .onChange(of: showSettings) { _ in requestPopoverResize() }
         .onChange(of: showReleaseNotes) { _ in requestPopoverResize() }
         .onChange(of: showPressurePlayground) { _ in requestPopoverResize() }
@@ -120,7 +130,20 @@ struct ContentView: View {
                         }
                     }
                 } else {
-                    manager.checkForUpdate()
+                    manager.checkForUpdate { isAvailable in
+                        if !isAvailable {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                showUpToDateToast = true
+                            }
+                            
+                            // Auto-hide after 2 seconds
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
+                                    showUpToDateToast = false
+                                }
+                            }
+                        }
+                    }
                 }
             }) {
                 VersionPillLabel(
@@ -413,6 +436,29 @@ struct ContentView: View {
                 isHoveringBottomHint = hovering
             }
         }
+    }
+
+    private var upToDateToast: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .foregroundColor(.green)
+                .font(.system(size: 12, weight: .bold))
+            Text("You're up to date!")
+                .font(.system(size: 11, weight: .bold, design: .rounded))
+                .foregroundColor(.primary.opacity(0.8))
+        }
+        .padding(.vertical, 8)
+        .padding(.horizontal, 16)
+        .background(
+            VisualEffectView(material: .hudWindow, blendingMode: .withinWindow)
+                .clipShape(Capsule())
+                .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
+        )
+        .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
+        .transition(.asymmetric(
+            insertion: .move(edge: .bottom).combined(with: .opacity),
+            removal: .opacity.combined(with: .scale(scale: 0.95))
+        ))
     }
     
     private var settingsSection: some View {
