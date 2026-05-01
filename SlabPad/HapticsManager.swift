@@ -71,7 +71,7 @@ final class HapticsManager {
     
     func setHaptics(to enabled: Bool) {
         guard let setSystemEnabled = setEnabled else { return }
-        _ = withActuator(fallback: ()) { actuator in
+        withActuator(fallback: ()) { actuator in
             _ = setSystemEnabled(actuator, enabled ? 1 : 0)
         }
     }
