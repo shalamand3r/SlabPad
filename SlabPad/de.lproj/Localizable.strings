@@ -16,3 +16,10 @@
 "ENABLE HAPTICS" = "HAPTIK AKTIVIEREN";
 "Loading..." = "Wird geladen…";
 
+"You're up to date!" = "Du bist auf dem neuesten Stand!";
+"Keep holding to reset app data..." = "Gedrückt halten, um App-Daten zurückzusetzen...";
+"Resetting..." = "Wird zurückgesetzt...";
+"Left Click" = "Linksklick";
+"Right Click" = "Rechtsklick";
+"Error" = "Fehler";
+"Update check failed" = "Update-Check fehlgeschlagen";
