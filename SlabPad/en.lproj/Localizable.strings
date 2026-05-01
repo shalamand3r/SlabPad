@@ -1,9 +1,8 @@
 "Launch at Login" = "Launch at Login";
 "Launch at Login (macOS 13+)" = "Launch at Login (macOS 13+)";
 "Click to download the latest version!" = "Click to download the latest version!";
-"Left-click" = "Left-click";
-"Right-click" = "Right-click";
-"to instantly toggle haptics" = "to instantly toggle haptics";
+"Left-click the menu bar icon to instantly toggle haptics" = "Left-click the menu bar icon to instantly toggle haptics";
+"Right-click the menu bar icon to instantly toggle haptics" = "Right-click the menu bar icon to instantly toggle haptics";
 "Quit" = "Quit";
 "Disable Haptics on Launch" = "Disable Haptics on Launch";
 "Re-enable Haptics on Quit" = "Re-enable Haptics on Quit";

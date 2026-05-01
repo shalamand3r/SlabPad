@@ -1,9 +1,8 @@
 "Launch at Login" = "Lancer à l’ouverture de session";
 "Launch at Login (macOS 13+)" = "Lancer à l’ouverture de session (macOS 13+)";
 "Click to download the latest version!" = "Cliquez pour télécharger la dernière version !";
-"Left-click" = "Clic gauche";
-"Right-click" = "Clic droit";
-"to instantly toggle haptics" = "pour activer/désactiver l’haptique instantanément";
+"Left-click the menu bar icon to instantly toggle haptics" = "Clic gauche sur l’icône de la barre des menus pour activer/désactiver l’haptique instantanément";
+"Right-click the menu bar icon to instantly toggle haptics" = "Clic droit sur l’icône de la barre des menus pour activer/désactiver l’haptique instantanément";
 "Quit" = "Quitter";
 "Disable Haptics on Launch" = "Désactiver l’haptique au lancement";
 "Re-enable Haptics on Quit" = "Réactiver l’haptique à la fermeture";

@@ -1,9 +1,8 @@
 "Launch at Login" = "로그인 시 실행";
 "Launch at Login (macOS 13+)" = "로그인 시 실행(macOS 13+)";
-"Click to download the latest version!" = "클릭하여 최신 버전을 다운로드하세요!";
-"Left-click" = "왼쪽 클릭";
-"Right-click" = "오른쪽 클릭";
-"to instantly toggle haptics" = "로 햅틱을 즉시 전환";
+"Click to download the latest version!" = "클릭하여 최신 버전을 다운로 드하세요!";
+"Left-click the menu bar icon to instantly toggle haptics" = "메뉴 막대 아이콘을 왼쪽 클릭으로 햅틱을 즉시 전환";
+"Right-click the menu bar icon to instantly toggle haptics" = "메뉴 막대 아이콘을 오른쪽 클릭으로 햅틱을 즉시 전환";
 "Quit" = "종료";
 "Disable Haptics on Launch" = "시작 시 햅틱 비활성화";
 "Re-enable Haptics on Quit" = "종료 시 햅틱 다시 활성화";

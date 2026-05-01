@@ -1,9 +1,8 @@
 "Launch at Login" = "登录时启动";
 "Launch at Login (macOS 13+)" = "登录时启动（macOS 13+）";
 "Click to download the latest version!" = "点击下载最新版本！";
-"Left-click" = "左键单击";
-"Right-click" = "右键单击";
-"to instantly toggle haptics" = "即可立即切换触觉反馈";
+"Left-click the menu bar icon to instantly toggle haptics" = "左键单击菜单栏图标即可立即切换触觉反馈";
+"Right-click the menu bar icon to instantly toggle haptics" = "右键单击菜单栏图标即可立即切换触觉反馈";
 "Quit" = "退出";
 "Disable Haptics on Launch" = "启动时关闭触觉反馈";
 "Re-enable Haptics on Quit" = "退出时重新开启触觉反馈";

@@ -21,7 +21,6 @@ struct ContentView: View {
     @State private var updatePressed = false
     @State private var quitPressed = false
     @State private var isHoveringBottomHint = false
-    @State private var hintFlashIsArrow = false
     @AppStorage("showBottomHint") private var showBottomHint = true
     @State private var resetHoldTriggered = false
     @State private var isPowerPressActive = false
@@ -373,8 +372,19 @@ struct ContentView: View {
     }
 
     private var topHintView: some View {
-        HStack(alignment: .center, spacing: 6) {
-            Spacer(minLength: 0)
+        let leftClick: LocalizedStringKey = "Left-click the menu bar icon to instantly toggle haptics"
+        let rightClick: LocalizedStringKey = "Right-click the menu bar icon to instantly toggle haptics"
+        
+        return ZStack(alignment: .trailing) {
+            Text(manager.invertClicks ? leftClick : rightClick)
+                .font(.system(size: 10, weight: .medium))
+                .foregroundColor(.secondary)
+                .multilineTextAlignment(.leading)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.vertical, 10)
+                .padding(.leading, 12)
+                .padding(.trailing, 36)
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             Button {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
@@ -382,40 +392,14 @@ struct ContentView: View {
                 }
                 DispatchQueue.main.async { requestPopoverResize() }
             } label: {
-                if #available(macOS 14.0, *) {
-                    Image(systemName: hintIconName)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.secondary.opacity(isHoveringBottomHint ? 0.75 : 0.55))
-                        .frame(width: 22, height: 22)
-                        .contentTransition(.symbolEffect(.replace))
-                } else {
-                    Image(systemName: hintIconName)
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.secondary.opacity(isHoveringBottomHint ? 0.75 : 0.55))
-                        .frame(width: 22, height: 22)
-                }
+                Image(systemName: "xmark")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundColor(.secondary.opacity(isHoveringBottomHint ? 0.75 : 0.55))
+                    .frame(width: 16, height: 16)
             }
             .buttonStyle(PopButtonStyle())
-
-            HStack(spacing: 4) {
-                let leftClick: LocalizedStringKey = "Left-click"
-                let rightClick: LocalizedStringKey = "Right-click"
-                Text(manager.invertClicks ? leftClick : rightClick)
-                    .fontWeight(.semibold)
-                        Image(systemName: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
-                            .opacity(0.75)
-                            .animation(.easeInOut(duration: 0.18), value: SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled))
-                        Text("to instantly toggle haptics")
-                    }
-                    .font(.system(size: 10))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
-            .minimumScaleFactor(0.85)
-            .truncationMode(.tail)
-
-            Spacer(minLength: 0)
+            .padding(10)
         }
-        .padding(.vertical, 8)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
                 .fill(Color.primary.opacity(0.035))
@@ -423,24 +407,12 @@ struct ContentView: View {
         )
         .padding(.horizontal, 14)
         .padding(.top, 8)
+        .contentShape(Rectangle())
         .onHover { hovering in
             withAnimation(.easeInOut(duration: 0.12)) {
                 isHoveringBottomHint = hovering
             }
         }
-        .onReceive(
-            Timer.publish(every: 2.0, on: .main, in: .common).autoconnect()
-        ) { _ in
-            guard showBottomHint, !isHoveringBottomHint else { return }
-            withAnimation(.easeInOut(duration: 0.25)) {
-                hintFlashIsArrow.toggle()
-            }
-        }
-    }
-
-    private var hintIconName: String {
-        if isHoveringBottomHint { return "xmark" }
-        return hintFlashIsArrow ? "arrow.up" : "lightbulb.fill"
     }
     
     private var settingsSection: some View {

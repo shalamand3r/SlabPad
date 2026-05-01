@@ -1,9 +1,8 @@
 "Launch at Login" = "Iniciar ao fazer login";
 "Launch at Login (macOS 13+)" = "Iniciar ao fazer login (macOS 13+)";
 "Click to download the latest version!" = "Clique para baixar a versão mais recente!";
-"Left-click" = "Clique esquerdo";
-"Right-click" = "Clique direito";
-"to instantly toggle haptics" = "para alternar a resposta tátil instantaneamente";
+"Left-click the menu bar icon to instantly toggle haptics" = "Clique esquerdo no ícone da barra de menus para alternar a resposta tátil instantaneamente";
+"Right-click the menu bar icon to instantly toggle haptics" = "Clique direito no ícone da barra de menus para alternar a resposta tátil instantaneamente";
 "Quit" = "Sair";
 "Disable Haptics on Launch" = "Desativar tátil ao iniciar";
 "Re-enable Haptics on Quit" = "Reativar tátil ao sair";

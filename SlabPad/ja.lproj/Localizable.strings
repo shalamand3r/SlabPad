@@ -1,9 +1,8 @@
 "Launch at Login" = "ログイン時に起動";
 "Launch at Login (macOS 13+)" = "ログイン時に起動（macOS 13+）";
 "Click to download the latest version!" = "クリックして最新バージョンをダウンロード";
-"Left-click" = "左クリック";
-"Right-click" = "右クリック";
-"to instantly toggle haptics" = "ですぐに触覚フィードバックを切り替え";
+"Left-click the menu bar icon to instantly toggle haptics" = "メニューバーアイコンを左クリックですぐに触覚フィードバックを切り替え";
+"Right-click the menu bar icon to instantly toggle haptics" = "メニューバーアイコンを右クリックですぐに触覚フィードバックを切り替え";
 "Quit" = "終了";
 "Disable Haptics on Launch" = "起動時に触覚フィードバックを無効化";
 "Re-enable Haptics on Quit" = "終了時に触覚フィードバックを再有効化";
