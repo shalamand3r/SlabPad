@@ -7,10 +7,7 @@ import Foundation
 
 private extension Color {
     static var slabPadAccent: Color {
-        if #available(macOS 12.0, *) {
-            return Color(nsColor: NSColor.controlAccentColor)
-        }
-        return Color.accentColor
+        .accentColor
     }
 }
 
@@ -349,46 +346,18 @@ struct ContentView: View {
             ZStack {
                 settingsSection
                     .opacity(activePanel == .settings ? 1 : 0)
-                    .scaleEffect(activePanel == .settings ? 1.0 : 0.9)
-                    .rotation3DEffect(
-                        .degrees(activePanel == .settings ? 0 : -90),
-                        axis: (x: 1, y: 0, z: 0),
-                        anchor: .center,
-                        perspective: 0.15
-                    )
                     .allowsHitTesting(activePanel == .settings)
 
                 mainButtonSection
-                .opacity(activePanel == .mainButton ? 1 : 0)
-                .scaleEffect(activePanel == .mainButton ? 1.0 : 0.9)
-                .rotation3DEffect(
-                    .degrees(activePanel == .mainButton ? 0 : 90),
-                    axis: (x: 1, y: 0, z: 0),
-                    anchor: .center,
-                    perspective: 0.15
-                )
-                .allowsHitTesting(activePanel == .mainButton)
+                    .opacity(activePanel == .mainButton ? 1 : 0)
+                    .allowsHitTesting(activePanel == .mainButton)
                 
                 releaseNotesSection
                     .opacity(activePanel == .releaseNotes ? 1 : 0)
-                    .scaleEffect(activePanel == .releaseNotes ? 1.0 : 0.9)
-                    .rotation3DEffect(
-                        .degrees(activePanel == .releaseNotes ? 0 : 90),
-                        axis: (x: 1, y: 0, z: 0),
-                        anchor: .center,
-                        perspective: 0.15
-                    )
                     .allowsHitTesting(activePanel == .releaseNotes)
 
                 pressurePlaygroundSection
                     .opacity(activePanel == .pressurePlayground ? 1 : 0)
-                    .scaleEffect(activePanel == .pressurePlayground ? 1.0 : 0.9)
-                    .rotation3DEffect(
-                        .degrees(activePanel == .pressurePlayground ? 0 : 90),
-                        axis: (x: 1, y: 0, z: 0),
-                        anchor: .center,
-                        perspective: 0.15
-                    )
                     .allowsHitTesting(activePanel == .pressurePlayground)
             }
             .fixedSize(horizontal: false, vertical: true)
@@ -656,7 +625,6 @@ struct ContentView: View {
                 .foregroundColor(.white)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .modifier(FloatingPerspectiveModifier())
             .animation(.easeInOut(duration: 0.18), value: manager.isHapticsEnabled)
         }
         .buttonStyle(HapticButtonStyle())
@@ -709,7 +677,9 @@ struct PopButtonStyle: ButtonStyle {
 	        HStack(alignment: .center) {
 	            Text(title).font(.system(size: 13, weight: .semibold))
 	            Spacer(minLength: 12)
-	            Toggle("", isOn: $isOn).toggleStyle(.switch).labelsHidden()
+	            Toggle("", isOn: $isOn)
+                    .toggleStyle(.switch)
+                    .labelsHidden()
 	        }
 	        .disabled(isDisabled)
         .opacity(isDisabled ? 0.6 : 1.0)
@@ -818,91 +788,3 @@ struct ContentView_Previews: PreviewProvider {
 }
 #endif
 
-private struct ViewSizePreferenceKey: PreferenceKey {
-    static var defaultValue: CGSize = .zero
-    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
-        value = nextValue()
-    }
-}
-
-private struct FloatingPerspectiveModifier: ViewModifier {
-    var cornerRadius: CGFloat = 12
-    var maxTilt: Double = 10
-    var shineMaxOpacity: Double = 0.14
-    var shineTravel: CGFloat = 150
-    var perspective: CGFloat = 0.2
-
-    @State private var viewSize: CGSize = .zero
-    @State private var rotation: (x: Double, y: Double) = (0, 0)
-    @State private var shineOffset: CGPoint = .zero
-    @State private var shineOpacity: Double = 0
-    
-    func body(content: Content) -> some View {
-        if #available(macOS 13.0, *) {
-            content
-                .overlay(
-                    GeometryReader { geo in
-                        ZStack {
-                            // shiny
-                            LinearGradient(
-                                colors: [
-                                    .white.opacity(0),
-                                    .white.opacity(shineOpacity),
-                                    .white.opacity(0)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                            .scaleEffect(2.5)
-                            .offset(x: shineOffset.x, y: shineOffset.y)
-                            .blendMode(.screen)
-                            .allowsHitTesting(false)
-
-                            Color.clear
-                                .preference(key: ViewSizePreferenceKey.self, value: geo.size)
-                        }
-                    }
-                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-                )
-                .rotation3DEffect(
-                    .degrees(rotation.x),
-                    axis: (x: 1, y: 0, z: 0),
-                    anchor: .center,
-                    perspective: perspective
-                )
-                .rotation3DEffect(
-                    .degrees(rotation.y),
-                    axis: (x: 0, y: 1, z: 0),
-                    anchor: .center,
-                    perspective: perspective
-                )
-                .onPreferenceChange(ViewSizePreferenceKey.self) { newSize in
-                    viewSize = newSize
-                }
-                .onContinuousHover { phase in
-                    switch phase {
-                    case .active(let location):
-                        let w = max(viewSize.width, 1)
-                        let h = max(viewSize.height, 1)
-                        let x = (location.x / w) - 0.5
-                        let y = (location.y / h) - 0.5
-                        
-                        withAnimation(.interactiveSpring()) {
-                            rotation = (x: Double(y * -maxTilt), y: Double(x * maxTilt))
-                            // move shine in response to cursor :D
-                            shineOffset = CGPoint(x: x * shineTravel, y: y * shineTravel)
-                            shineOpacity = shineMaxOpacity
-                        }
-                    case .ended:
-                        withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
-                            rotation = (0, 0)
-                            shineOffset = .zero
-                            shineOpacity = 0
-                        }
-                    }
-                }
-        } else {
-            content
-        }
-    }
-}
