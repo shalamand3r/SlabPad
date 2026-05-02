@@ -1,13 +1,16 @@
+// Settings
 "Launch at Login" = "Start bij inloggen";
 "Launch at Login (macOS 13+)" = "Start bij inloggen (macOS 13+)";
+"Disable Haptics on Launch" = "Schakel haptiek uit bij opstarten";
+"Re-enable Haptics on Quit" = "Schakel haptiek opnieuw in bij afsluiten";
+"Invert Menu Bar Clicks" = "Keer menubalkklikken om";
+"Settings" = "Instellingen";
+
+// ContentView.swift
 "Click to download the latest version!" = "Klik om de laatste versie te downloaden!";
 "Left-click the menu bar icon to instantly toggle haptics" = "Klik links op het menubalkicoon om haptiek direct in/uit te schakelen";
 "Right-click the menu bar icon to instantly toggle haptics" = "Klik rechts op het menubalkicoon om haptiek direct in/uit te schakelen";
 "Quit" = "Stop";
-"Disable Haptics on Launch" = "Schakel haptiek uit bij opstarten";
-"Re-enable Haptics on Quit" = "Schakel haptiek opnieuw in bij afsluiten";
-"Invert Menu Bar Clicks" = "Keer menubalkklikken om";
-"Pressure Playground requires macOS 12.0+" = "Pressure Playground vereist macOS 12.0+";
 "What's New" = "Wat is er nieuw";
 "Open on GitHub" = "Open op GitHub";
 "Close" = "Sluit";
@@ -19,22 +22,12 @@
 "Error" = "Fout";
 "Update check failed" = "Updatecontrole mislukt";
 "View Pressure Playground" = "Bekijk Pressure Playground";
-"Settings" = "Instellingen";
 "Dismiss" = "Sluit";
-"Close Playground" = "Sluit Playground";
 "FOCUS ACTIVE" = "FOCUS ACTIEF";
-"View Release Notes" = "View Release Notes";
-"Check for Updates" = "Check for Updates";
-
 "View Release Notes" = "Versienotities bekijken";
 "Check for Updates" = "Controleren op updates";
-"Haptics managed by Focus" = "Haptiek beheerd door Focus";
-"Disable Haptics" = "Schakel haptiek uit";
-"Enable Haptics" = "Schakel haptiek in";
 
-"SlabPad Silence" = "SlabPad Stilte";
-"Silences trackpad haptics when this Focus Mode is active." = "Schakelt trackpad-haptiek uit wanneer deze Focus-modus actief is.";
-"Silence Haptics" = "Haptiek uitschakelen";
-"Silence trackpad haptics: " = "Trackpad-haptiek uitschakelen: ";
-"Haptics disabled" = "Haptiek uitgeschakeld";
-"Haptics enabled" = "Haptiek ingeschakeld";
+// PressurePlayground.swift
+"Pressure Playground requires macOS 12.0+" = "Pressure Playground vereist macOS 12.0+";
+"Close Playground" = "Sluit Playground";
+

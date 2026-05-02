@@ -1,13 +1,16 @@
+// Settings
 "Launch at Login" = "Beim Anmelden starten";
 "Launch at Login (macOS 13+)" = "Beim Anmelden starten (macOS 13+)";
+"Disable Haptics on Launch" = "Haptik beim Start deaktivieren";
+"Re-enable Haptics on Quit" = "Haptik beim Beenden reaktivieren";
+"Invert Menu Bar Clicks" = "Menüleistenklicks invertieren";
+"Settings" = "Einstellungen";
+
+// ContentView.swift
 "Click to download the latest version!" = "Klicken, um die neueste Version herunterzuladen!";
 "Left-click the menu bar icon to instantly toggle haptics" = "Linksklick auf das Menüleistensymbol zum schnellen Umschalten der Haptik";
 "Right-click the menu bar icon to instantly toggle haptics" = "Rechtsklick auf das Menüleistensymbol zum schnellen Umschalten der Haptik";
 "Quit" = "Beenden";
-"Disable Haptics on Launch" = "Haptik beim Start deaktivieren";
-"Re-enable Haptics on Quit" = "Haptik beim Beenden reaktivieren";
-"Invert Menu Bar Clicks" = "Menüleistenklicks invertieren";
-"Pressure Playground requires macOS 12.0+" = "Pressure Playground erfordert macOS 12.0+";
 "What's New" = "Neuigkeiten";
 "Open on GitHub" = "Auf GitHub öffnen";
 "Close" = "Schließen";
@@ -19,22 +22,12 @@
 "Error" = "Fehler";
 "Update check failed" = "Update-Überprüfung fehlgeschlagen";
 "View Pressure Playground" = "Pressure Playground anzeigen";
-"Settings" = "Einstellungen";
 "Dismiss" = "Ausblenden";
-"Close Playground" = "Playground schließen";
 "FOCUS ACTIVE" = "FOKUS AKTIV";
-"View Release Notes" = "View Release Notes";
-"Check for Updates" = "Check for Updates";
-
 "View Release Notes" = "Versionshinweise anzeigen";
 "Check for Updates" = "Auf Updates prüfen";
-"Haptics managed by Focus" = "Haptik von Fokus verwaltet";
-"Disable Haptics" = "Haptik deaktivieren";
-"Enable Haptics" = "Haptik aktivieren";
 
-"SlabPad Silence" = "SlabPad Stille";
-"Silences trackpad haptics when this Focus Mode is active." = "Deaktiviert die Trackpad-Haptik, wenn dieser Fokus-Modus aktiv ist.";
-"Silence Haptics" = "Haptik stummschalten";
-"Silence trackpad haptics: " = "Trackpad-Haptik stummschalten: ";
-"Haptics disabled" = "Haptik deaktiviert";
-"Haptics enabled" = "Haptik aktiviert";
+// PressurePlayground.swift
+"Pressure Playground requires macOS 12.0+" = "Pressure Playground erfordert macOS 12.0+";
+"Close Playground" = "Playground schließen";
+

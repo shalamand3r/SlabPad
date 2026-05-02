@@ -1,13 +1,16 @@
+// Settings
 "Launch at Login" = "ログイン時に起動";
 "Launch at Login (macOS 13+)" = "ログイン時に起動 (macOS 13+)";
-"Click to download the latest version!" = "クリックして最新バージョンをダウンロード！";
-"Left-click the menu bar icon to instantly toggle haptics" = "メニューバーアイコンを左クリックして触覚フィードバックを素早く切り替えます";
-"Right-click the menu bar icon to instantly toggle haptics" = "メニューバーアイコンを右クリックして触覚フィードバックを素早く切り替えます";
-"Quit" = "終了";
 "Disable Haptics on Launch" = "起動時に触覚フィードバックを無効化";
 "Re-enable Haptics on Quit" = "終了時に触覚フィードバックを再有効化";
 "Invert Menu Bar Clicks" = "メニューバークリックを反転";
-"Pressure Playground requires macOS 12.0+" = "Pressure PlaygroundにはmacOS 12.0以降が必要です";
+"Settings" = "設定";
+
+// ContentView.swift
+"Click to download the latest version!" = "クリックして最新バージョンを ダウンロード！";
+"Left-click the menu bar icon to instantly toggle haptics" = "メニューバーアイコンを左クリックして触覚フィードバックを素早く切り替えます";
+"Right-click the menu bar icon to instantly toggle haptics" = "メニュー バーアイコンを右クリックして触覚フィードバックを素早く切り替えます";
+"Quit" = "終了";
 "What's New" = "新機能";
 "Open on GitHub" = "GitHubで開く";
 "Close" = "閉じる";
@@ -19,22 +22,12 @@
 "Error" = "エラー";
 "Update check failed" = "アップデートの確認に失敗しました";
 "View Pressure Playground" = "Pressure Playgroundを表示";
-"Settings" = "設定";
 "Dismiss" = "閉じる";
-"Close Playground" = "Playgroundを閉じる";
 "FOCUS ACTIVE" = "フォーカス有効";
-"View Release Notes" = "View Release Notes";
-"Check for Updates" = "Check for Updates";
-
 "View Release Notes" = "リリースノートを表示";
 "Check for Updates" = "アップデートを確認";
-"Haptics managed by Focus" = "触覚フィードバックは集中モードで管理";
-"Disable Haptics" = "触覚フィードバックを無効にする";
-"Enable Haptics" = "触覚フィードバックを有効にする";
 
-"SlabPad Silence" = "SlabPad サイレント";
-"Silences trackpad haptics when this Focus Mode is active." = "この集中モードが有効な間、トラックパッドの触覚フィードバックを無効にします。";
-"Silence Haptics" = "触覚フィードバックを無効化";
-"Silence trackpad haptics: " = "トラックパッドの触覚フィードバックを無効化: ";
-"Haptics disabled" = "触覚フィードバック無効";
-"Haptics enabled" = "触覚フィードバック有効";
+// PressurePlayground.swift
+"Pressure Playground requires macOS 12.0+" = "Pressure PlaygroundにはmacOS 12.0以降が必要です";
+"Close Playground" = "Playgroundを閉じる";
+

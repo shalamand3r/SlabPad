@@ -1,13 +1,16 @@
+// Settings
 "Launch at Login" = "Avvia al login";
 "Launch at Login (macOS 13+)" = "Avvia al login (macOS 13+)";
+"Disable Haptics on Launch" = "Disabilita feedback aptico all'avvio";
+"Re-enable Haptics on Quit" = "Riabilita feedback aptico alla chiusura";
+"Invert Menu Bar Clicks" = "Inverti clic nella barra dei menu";
+"Settings" = "Impostazioni";
+
+// ContentView.swift
 "Click to download the latest version!" = "Clicca per scaricare l'ultima versione!";
 "Left-click the menu bar icon to instantly toggle haptics" = "Fai clic sinistro sull'icona nella barra dei menu per attivare/disattivare il feedback aptico";
 "Right-click the menu bar icon to instantly toggle haptics" = "Fai clic destro sull'icona nella barra dei menu per attivare/disattivare il feedback aptico";
 "Quit" = "Esci";
-"Disable Haptics on Launch" = "Disabilita feedback aptico all'avvio";
-"Re-enable Haptics on Quit" = "Riabilita feedback aptico alla chiusura";
-"Invert Menu Bar Clicks" = "Inverti clic nella barra dei menu";
-"Pressure Playground requires macOS 12.0+" = "Pressure Playground richiede macOS 12.0+";
 "What's New" = "Novità";
 "Open on GitHub" = "Apri su GitHub";
 "Close" = "Chiudi";
@@ -19,22 +22,12 @@
 "Error" = "Errore";
 "Update check failed" = "Controllo aggiornamenti fallito";
 "View Pressure Playground" = "Visualizza Pressure Playground";
-"Settings" = "Impostazioni";
 "Dismiss" = "Ignora";
-"Close Playground" = "Chiudi Playground";
 "FOCUS ACTIVE" = "FOCUS ATTIVO";
-"View Release Notes" = "View Release Notes";
-"Check for Updates" = "Check for Updates";
-
 "View Release Notes" = "Visualizza note di rilascio";
 "Check for Updates" = "Verifica aggiornamenti";
-"Haptics managed by Focus" = "Feedback aptico gestito da Full immersion";
-"Disable Haptics" = "Disabilita feedback aptico";
-"Enable Haptics" = "Abilita feedback aptico";
 
-"SlabPad Silence" = "Silenzio SlabPad";
-"Silences trackpad haptics when this Focus Mode is active." = "Disattiva il feedback aptico del trackpad quando questa Full immersion è attiva.";
-"Silence Haptics" = "Disattiva feedback aptico";
-"Silence trackpad haptics: " = "Disattiva feedback aptico trackpad: ";
-"Haptics disabled" = "Feedback aptico disattivato";
-"Haptics enabled" = "Feedback aptico attivato";
+// PressurePlayground.swift
+"Pressure Playground requires macOS 12.0+" = "Pressure Playground richiede macOS 12.0+";
+"Close Playground" = "Chiudi Playground";
+

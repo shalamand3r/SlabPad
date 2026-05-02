@@ -1,13 +1,16 @@
+// Settings
 "Launch at Login" = "Lancer à l'ouverture de session";
 "Launch at Login (macOS 13+)" = "Lancer à l'ouverture de session (macOS 13+)";
+"Disable Haptics on Launch" = "Désactiver le retour haptique au lancement";
+"Re-enable Haptics on Quit" = "Réactiver le retour haptique à la fermeture";
+"Invert Menu Bar Clicks" = "Inverser les clics dans la barre des menus";
+"Settings" = "Réglages";
+
+// ContentView.swift
 "Click to download the latest version!" = "Cliquez pour télécharger la dernière version !";
 "Left-click the menu bar icon to instantly toggle haptics" = "Cliquez à gauche sur l'icône de la barre des menus pour activer/désactiver le retour haptique";
 "Right-click the menu bar icon to instantly toggle haptics" = "Cliquez à droite sur l'icône de la barre des menus pour activer/désactiver le retour haptique";
 "Quit" = "Quitter";
-"Disable Haptics on Launch" = "Désactiver le retour haptique au lancement";
-"Re-enable Haptics on Quit" = "Réactiver le retour haptique à la fermeture";
-"Invert Menu Bar Clicks" = "Inverser les clics dans la barre des menus";
-"Pressure Playground requires macOS 12.0+" = "Pressure Playground nécessite macOS 12.0+";
 "What's New" = "Nouveautés";
 "Open on GitHub" = "Ouvrir sur GitHub";
 "Close" = "Fermer";
@@ -19,22 +22,12 @@
 "Error" = "Erreur";
 "Update check failed" = "Échec de la recherche de mise à jour";
 "View Pressure Playground" = "Voir Pressure Playground";
-"Settings" = "Réglages";
 "Dismiss" = "Ignorer";
-"Close Playground" = "Fermer le Playground";
 "FOCUS ACTIVE" = "FOCUS ACTIF";
-"View Release Notes" = "View Release Notes";
-"Check for Updates" = "Check for Updates";
-
 "View Release Notes" = "Voir les notes de version";
 "Check for Updates" = "Vérifier les mises à jour";
-"Haptics managed by Focus" = "Haptique gérée par Concentration";
-"Disable Haptics" = "Désactiver le retour haptique";
-"Enable Haptics" = "Activer le retour haptique";
 
-"SlabPad Silence" = "SlabPad Silence";
-"Silences trackpad haptics when this Focus Mode is active." = "Désactive le retour haptique du trackpad lorsque ce mode de Concentration est actif.";
-"Silence Haptics" = "Désactiver le retour haptique";
-"Silence trackpad haptics: " = "Désactiver le retour haptique du trackpad : ";
-"Haptics disabled" = "Retour haptique désactivé";
-"Haptics enabled" = "Retour haptique activé";
+// PressurePlayground.swift
+"Pressure Playground requires macOS 12.0+" = "Pressure Playground nécessite macOS 12.0+";
+"Close Playground" = "Fermer le Playground";
+

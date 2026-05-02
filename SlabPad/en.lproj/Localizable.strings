@@ -1,13 +1,16 @@
+// Settings
+"Settings" = "Settings";
 "Launch at Login" = "Launch at Login";
 "Launch at Login (macOS 13+)" = "Launch at Login (macOS 13+)";
+"Disable Haptics on Launch" = "Disable Haptics on Launch";
+"Re-enable Haptics on Quit" = "Re-enable Haptics on Quit";
+"Invert Menu Bar Clicks" = "Invert Menu Bar Clicks";
+
+// ContentView.swift
 "Click to download the latest version!" = "Click to download the latest version!";
 "Left-click the menu bar icon to instantly toggle haptics" = "Left-click the menu bar icon to instantly toggle haptics";
 "Right-click the menu bar icon to instantly toggle haptics" = "Right-click the menu bar icon to instantly toggle haptics";
 "Quit" = "Quit";
-"Disable Haptics on Launch" = "Disable Haptics on Launch";
-"Re-enable Haptics on Quit" = "Re-enable Haptics on Quit";
-"Invert Menu Bar Clicks" = "Invert Menu Bar Clicks";
-"Pressure Playground requires macOS 12.0+" = "Pressure Playground requires macOS 12.0+";
 "What's New" = "What's New";
 "Open on GitHub" = "Open on GitHub";
 "Close" = "Close";
@@ -19,13 +22,12 @@
 "Error" = "Error";
 "Update check failed" = "Update check failed";
 "View Pressure Playground" = "View Pressure Playground";
-"Settings" = "Settings";
 "Dismiss" = "Dismiss";
-"Close Playground" = "Close Playground";
 "FOCUS ACTIVE" = "FOCUS ACTIVE";
-"SlabPad Silence" = "SlabPad Silence";
-"Silences trackpad haptics when this Focus Mode is active." = "Silences trackpad haptics when this Focus Mode is active.";
-"Silence Haptics" = "Silence Haptics";
-"Silence trackpad haptics: " = "Silence trackpad haptics: ";
-"Haptics disabled" = "Haptics disabled";
-"Haptics enabled" = "Haptics enabled";
+"View Release Notes" = "View Release Notes";
+"Check for Updates" = "Check for Updates";
+
+// PressurePlayground.swift
+"Pressure Playground requires macOS 12.0+" = "Pressure Playground requires macOS 12.0+";
+"Close Playground" = "Close Playground";
+

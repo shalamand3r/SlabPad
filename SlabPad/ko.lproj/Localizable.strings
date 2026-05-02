@@ -1,13 +1,16 @@
+// Settings
 "Launch at Login" = "로그인 시 시작";
 "Launch at Login (macOS 13+)" = "로그인 시 시작 (macOS 13+)";
+"Disable Haptics on Launch" = "시작 시 햅틱 비활성화";
+"Re-enable Haptics on Quit" = "종료 시 햅틱 재활성화";
+"Invert Menu Bar Clicks" = "메뉴 막대 클릭 반전";
+"Settings" = "설정";
+
+// ContentView.swift
 "Click to download the latest version!" = "클릭하여 최신 버전을 다운로드하세요!";
 "Left-click the menu bar icon to instantly toggle haptics" = "메뉴 막대 아이콘을 왼쪽 클릭하여 햅틱을 즉시 전환합니다";
 "Right-click the menu bar icon to instantly toggle haptics" = "메뉴 막대 아이콘을 오른쪽 클릭하여 햅틱을 즉시 전환합니다";
 "Quit" = "종료";
-"Disable Haptics on Launch" = "시작 시 햅틱 비활성화";
-"Re-enable Haptics on Quit" = "종료 시 햅틱 재활성화";
-"Invert Menu Bar Clicks" = "메뉴 막대 클릭 반전";
-"Pressure Playground requires macOS 12.0+" = "Pressure Playground는 macOS 12.0 이상이 필요합니다";
 "What's New" = "새로운 기능";
 "Open on GitHub" = "GitHub에서 열기";
 "Close" = "닫기";
@@ -19,22 +22,12 @@
 "Error" = "오류";
 "Update check failed" = "업데이트 확인 실패";
 "View Pressure Playground" = "Pressure Playground 보기";
-"Settings" = "설정";
 "Dismiss" = "닫기";
-"Close Playground" = "Playground 닫기";
 "FOCUS ACTIVE" = "포커스 활성";
-"View Release Notes" = "View Release Notes";
-"Check for Updates" = "Check for Updates";
-
 "View Release Notes" = "릴리스 노트 보기";
 "Check for Updates" = "업데이트 확인";
-"Haptics managed by Focus" = "집중 모드에서 관리되는 햅틱";
-"Disable Haptics" = "햅틱 끄기";
-"Enable Haptics" = "햅틱 켜기";
 
-"SlabPad Silence" = "SlabPad 무음";
-"Silences trackpad haptics when this Focus Mode is active." = "이 집중 모드가 활성화되어 있을 때 트랙패드 햅틱을 끕니다.";
-"Silence Haptics" = "햅틱 끄기";
-"Silence trackpad haptics: " = "트랙패드 햅틱 끄기: ";
-"Haptics disabled" = "햅틱 꺼짐";
-"Haptics enabled" = "햅틱 켜짐";
+// PressurePlayground.swift
+"Pressure Playground requires macOS 12.0+" = "Pressure Playground는 macOS 12.0 이상이 필요합니다";
+"Close Playground" = "Playground 닫기";
+
