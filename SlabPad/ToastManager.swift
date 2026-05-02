@@ -7,29 +7,7 @@ enum ToastType: Equatable {
     case error(String)
     case warning(String)
     case upToDate
-    case reset(progress: Double, countdown: Int, isTriggered: Bool)
-    
-    var icon: String? {
-        switch self {
-        case .info(_, let systemImage): return systemImage ?? "info.circle.fill"
-        case .success: return "checkmark.circle.fill"
-        case .error: return "xmark.circle.fill"
-        case .warning: return "exclamationmark.triangle.fill"
-        case .upToDate: return "checkmark.circle.fill"
-        case .reset: return nil
-        }
-    }
-    
-    var iconColor: Color {
-        switch self {
-        case .info: return .blue
-        case .success: return .green
-        case .error: return .red
-        case .warning: return .orange
-        case .upToDate: return .green
-        case .reset: return .red
-        }
-    }
+    case reset(progress: Double, countdown: Int)
 }
 
 struct Toast: Identifiable, Equatable {
@@ -48,6 +26,7 @@ struct Toast: Identifiable, Equatable {
     }
 }
 
+@MainActor
 class ToastManager: ObservableObject {
     @Published var toasts: [Toast] = []
     private var timers: [UUID: AnyCancellable] = [:]
@@ -76,15 +55,15 @@ class ToastManager: ObservableObject {
         timers.removeValue(forKey: id)
     }
     
-    func updateResetToast(progress: Double, countdown: Int, isTriggered: Bool) {
+    func updateResetToast(progress: Double, countdown: Int) {
         if let index = toasts.firstIndex(where: { 
             if case .reset = $0.type { return true }
             return false
         }) {
             let existingToast = toasts[index]
-            toasts[index] = Toast(id: existingToast.id, type: .reset(progress: progress, countdown: countdown, isTriggered: isTriggered), duration: nil)
+            toasts[index] = Toast(id: existingToast.id, type: .reset(progress: progress, countdown: countdown), duration: nil)
         } else {
-            show(.reset(progress: progress, countdown: countdown, isTriggered: isTriggered), duration: nil)
+            show(.reset(progress: progress, countdown: countdown), duration: nil)
         }
     }
     

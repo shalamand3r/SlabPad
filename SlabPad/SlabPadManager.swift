@@ -75,6 +75,47 @@ final class SlabPadManager: ObservableObject {
     @Published var latestReleaseNotesMarkdown: String?
     @Published var latestDownloadZipURL: URL?
 
+    var processedReleaseNotes: String? {
+        guard let markdown = latestReleaseNotesMarkdown else { return nil }
+        
+        let normalized = markdown
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+            
+        let lines = normalized.components(separatedBy: .newlines)
+        let headerRegex = try? NSRegularExpression(pattern: "^\\s*#{2,6}\\s*(changelog|what's new|whats new)\\s*:?(\\s*)$", options: [.caseInsensitive])
+        
+        var startIndex: Int?
+        if let headerRegex = headerRegex {
+            for (index, line) in lines.enumerated() {
+                let range = NSRange(line.startIndex..<line.endIndex, in: line)
+                if headerRegex.firstMatch(in: line, options: [], range: range) != nil {
+                    startIndex = index + 1
+                    break
+                }
+            }
+        }
+
+        if let startIndex = startIndex, startIndex < lines.count {
+            let extracted = lines[startIndex...].joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+            return extracted.isEmpty ? normalized : extracted
+        }
+        
+        return normalized
+    }
+
+    var bulletLines: [String] {
+        guard let markdown = processedReleaseNotes else { return [] }
+        let lines = markdown.components(separatedBy: .newlines)
+        return lines.compactMap { line -> String? in
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.hasPrefix("- ") { return String(trimmed.dropFirst(2)) }
+            if trimmed.hasPrefix("* ") { return String(trimmed.dropFirst(2)) }
+            if trimmed.hasPrefix("• ") { return String(trimmed.dropFirst(2)) }
+            return nil
+        }
+    }
+
     var supportsLaunchAtLogin: Bool {
         if #available(macOS 13.0, *) {
             return true
@@ -98,6 +139,10 @@ final class SlabPadManager: ObservableObject {
     
     var currentVersionString: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0"
+    }
+    
+    var currentVersionText: String {
+        "v\(currentVersionString)"
     }
     
     private static func readLaunchAtLogin() -> Bool {
@@ -152,7 +197,7 @@ final class SlabPadManager: ObservableObject {
         }
 
         isCheckingForUpdates = true
-        Task { @MainActor in
+        Task {
             defer { isCheckingForUpdates = false }
             
             var request = URLRequest(url: url)
@@ -208,9 +253,8 @@ final class SlabPadManager: ObservableObject {
 
     private static func makeDownloadZipURL(tagName: String) -> URL? {
         let trimmed = tagName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let cleaned = trimmed.hasPrefix("v") ? String(trimmed.dropFirst()) : trimmed
-        guard !cleaned.isEmpty else { return nil }
-        return URL(string: "https://github.com/shalamand3r/SlabPad/releases/download/\(cleaned)/SlabPad.Universal.zip")
+        guard !trimmed.isEmpty else { return nil }
+        return URL(string: "https://github.com/shalamand3r/SlabPad/releases/download/\(trimmed)/SlabPad.Universal.zip")
     }
     
     func toggleHapticsEnabled() {

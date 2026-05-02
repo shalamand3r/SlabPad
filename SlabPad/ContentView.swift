@@ -35,11 +35,6 @@ struct ContentView: View {
     
     private let spring = Animation.spring(response: 0.5, dampingFraction: 0.82)
 
-    init(initialShowSettings: Bool = false, initialShowReleaseNotes: Bool = false) {
-        _showSettings = State(initialValue: initialShowSettings)
-        _showReleaseNotes = State(initialValue: initialShowReleaseNotes)
-    }
-    
     private enum Panel: Hashable {
         case mainButton
         case settings
@@ -69,13 +64,8 @@ struct ContentView: View {
         return "Launch at Login (macOS 13+)"
     }
     
-    private var appVersionText: String {
-        let short = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String
-        return "v" + (short ?? "?")
-    }
-    
     private var latestVersionText: String {
-        guard let latestTag = manager.latestReleaseTag else { return appVersionText }
+        guard let latestTag = manager.latestReleaseTag else { return manager.currentVersionText }
         let tag = latestTag.trimmingCharacters(in: .whitespacesAndNewlines)
         return tag.hasPrefix("v") ? tag : "v\(tag)"
     }
@@ -182,11 +172,10 @@ struct ContentView: View {
                     }
                     
                     VersionPillLabel(
-                        current: appVersionText,
-                        latest: latestVersionText,
-                        showLatest: shouldShowLatestInVersionPill
-                    )
-                }
+                       current: manager.currentVersionText,
+                       latest: latestVersionText,
+                       showLatest: shouldShowLatestInVersionPill
+                    )                }
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .lineLimit(1)
                 .layoutPriority(1)
@@ -506,8 +495,7 @@ struct ContentView: View {
         guard isPowerPressActive || resetHoldTriggered else { return }
         toastManager.updateResetToast(
             progress: Double(powerHoldProgress),
-            countdown: resetCountdownValue,
-            isTriggered: resetHoldTriggered
+            countdown: resetCountdownValue
         )
     }
 
@@ -516,8 +504,8 @@ struct ContentView: View {
         switch toast.type {
         case .upToDate:
             upToDateToast
-        case .reset(let progress, let countdown, let triggered):
-            resetToastView(progress: CGFloat(progress), countdown: countdown, triggered: triggered)
+        case .reset(let progress, let countdown):
+            resetToastView(progress: CGFloat(progress), countdown: countdown)
         case .error(let message):
             errorToastView(message: message)
         case .info(let message, let systemImage):
@@ -542,7 +530,7 @@ struct ContentView: View {
         }
     }
 
-    private func resetToastView(progress: CGFloat, countdown: Int, triggered: Bool) -> some View {
+    private func resetToastView(progress: CGFloat, countdown: Int) -> some View {
         ToastView {
             HStack(spacing: 8) {
                 ZStack {
@@ -675,9 +663,6 @@ struct ContentView: View {
     }
 
     private var releaseNotesSection: some View {
-        let latestNotes = normalizeNewlines(manager.latestReleaseNotesMarkdown)
-        let latestWhatsNew = extractWhatsNewMarkdown(from: latestNotes) ?? latestNotes
-        
         let titleLatest: LocalizedStringKey = "What's New"
 
         return VStack(alignment: .leading, spacing: 10) {
@@ -718,7 +703,7 @@ struct ContentView: View {
             Divider().opacity(0.2)
 
             ScrollView {
-                WhatsNewBulletsView(markdown: latestWhatsNew)
+                WhatsNewBulletsView(bulletLines: manager.bulletLines, fallbackMarkdown: manager.processedReleaseNotes)
                     .padding(.top, 2)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -730,34 +715,6 @@ struct ContentView: View {
         .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
         .padding(.horizontal, 14)
     }
-
-    private func extractWhatsNewMarkdown(from markdown: String?) -> String? {
-        guard let markdown else { return nil }
-        let lines = markdown.components(separatedBy: .newlines)
-        let headerRegex = try? NSRegularExpression(pattern: "^\\s*#{2,6}\\s*(changelog|what's new|whats new)\\s*:?(\\s*)$", options: [.caseInsensitive])
-        guard let headerRegex else { return nil }
-
-        var startIndex: Int?
-        for (index, line) in lines.enumerated() {
-            let range = NSRange(line.startIndex..<line.endIndex, in: line)
-            if headerRegex.firstMatch(in: line, options: [], range: range) != nil {
-                startIndex = index + 1
-                break
-            }
-        }
-
-        guard let startIndex, startIndex < lines.count else { return nil }
-        let extracted = lines[startIndex...].joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-        return extracted.isEmpty ? nil : extracted
-    }
-
-    private func normalizeNewlines(_ value: String?) -> String? {
-        guard let value else { return nil }
-        return value
-            .replacingOccurrences(of: "\r\n", with: "\n")
-            .replacingOccurrences(of: "\r", with: "\n")
-    }
-
     private struct VersionPillLabel: View {
         let current: String
         let latest: String
@@ -989,28 +946,12 @@ private struct ReleaseNotesMarkdownView: View {
 }
 
 private struct WhatsNewBulletsView: View {
-    let markdown: String?
-    
-    private var bulletLines: [String] {
-        guard let markdown else { return [] }
-        let normalized = markdown
-            .replacingOccurrences(of: "\r\n", with: "\n")
-            .replacingOccurrences(of: "\r", with: "\n")
-        
-        let lines = normalized.components(separatedBy: "\n")
-        let bullets = lines.compactMap { line -> String? in
-            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            if trimmed.hasPrefix("- ") { return String(trimmed.dropFirst(2)) }
-            if trimmed.hasPrefix("* ") { return String(trimmed.dropFirst(2)) }
-            if trimmed.hasPrefix("• ") { return String(trimmed.dropFirst(2)) }
-            return nil
-        }
-        return bullets
-    }
+    let bulletLines: [String]
+    let fallbackMarkdown: String?
     
     var body: some View {
         if bulletLines.isEmpty {
-            ReleaseNotesMarkdownView(markdown: markdown)
+            ReleaseNotesMarkdownView(markdown: fallbackMarkdown)
         } else {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(bulletLines, id: \.self) { bullet in
