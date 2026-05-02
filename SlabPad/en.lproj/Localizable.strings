@@ -15,7 +15,10 @@
 "ENABLE HAPTICS" = "ENABLE HAPTICS";
 "Loading..." = "Loading...";
 "Keep holding to reset app data..." = "Keep holding to reset app data...";
-
 "You're up to date!" = "You're up to date!";
 "Error" = "Error";
 "Update check failed" = "Update check failed";
+"View Pressure Playground" = "View Pressure Playground";
+"Settings" = "Settings";
+"Dismiss" = "Dismiss";
+"Close Playground" = "Close Playground";

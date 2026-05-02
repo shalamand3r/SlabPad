@@ -5,12 +5,6 @@ import SwiftUI
 import Combine
 import Foundation
 
-private extension Color {
-    static var slabPadAccent: Color {
-        .accentColor
-    }
-}
-
 struct ContentView: View {
     @ObservedObject private var manager = SlabPadManager.shared
     @State private var showSettings = false
@@ -140,7 +134,7 @@ struct ContentView: View {
                     .fixedSize(horizontal: true, vertical: false)
             }
             .buttonStyle(PopButtonStyle())
-            .help(Text("View Pressure Playground"))
+            .help(Text(LocalizedStringKey("View Pressure Playground")))
             
             Button(action: {
                 if manager.hasUpdateAvailable {
@@ -179,13 +173,13 @@ struct ContentView: View {
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .lineLimit(1)
                 .layoutPriority(1)
-                .foregroundColor(showReleaseNotes ? .slabPadAccent : .secondary.opacity(0.6))
+                .foregroundColor(showReleaseNotes ? .accentColor : .secondary.opacity(0.6))
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .background(
                     Capsule()
-                        .fill(showReleaseNotes ? Color.slabPadAccent.opacity(0.15) : Color.primary.opacity(0.06))
-                        .overlay(Capsule().stroke(showReleaseNotes ? Color.slabPadAccent.opacity(0.2) : Color.primary.opacity(0.1), lineWidth: 0.5))
+                        .fill(showReleaseNotes ? Color.accentColor.opacity(0.15) : Color.primary.opacity(0.06))
+                        .overlay(Capsule().stroke(showReleaseNotes ? Color.accentColor.opacity(0.2) : Color.primary.opacity(0.1), lineWidth: 0.5))
                 )
                 .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
                 .animation(.easeInOut(duration: 0.18), value: shouldShowLatestInVersionPill)
@@ -247,13 +241,13 @@ struct ContentView: View {
             }) {
                 Image(systemName: "gearshape.fill")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(showSettings ? .slabPadAccent : .secondary.opacity(0.6))
+                    .foregroundColor(showSettings ? .accentColor : .secondary.opacity(0.6))
                     .frame(width: 28, height: 28)
-                    .background(showSettings ? Color.slabPadAccent.opacity(0.15) : Color.clear)
+                    .background(showSettings ? Color.accentColor.opacity(0.15) : Color.clear)
                     .cornerRadius(8)
             }
             .buttonStyle(PopButtonStyle())
-            .help(Text("Settings"))
+            .help(Text(LocalizedStringKey("Settings")))
 
             Button(action: {
                 if resetHoldTriggered { return }
@@ -282,7 +276,7 @@ struct ContentView: View {
                     .cornerRadius(8)
                     .overlay(powerHoldRing)
             }
-            .help(Text("Quit"))
+            .help(Text(LocalizedStringKey("Quit")))
             .buttonStyle(PopButtonStyle())
             .simultaneousGesture(
                 DragGesture(minimumDistance: 0)
@@ -473,7 +467,7 @@ struct ContentView: View {
                     .frame(width: 16, height: 16)
             }
             .buttonStyle(PopButtonStyle())
-            .help(Text("Dismiss"))
+            .help(Text(LocalizedStringKey("Dismiss")))
             .padding(10)
         }
         .background(
@@ -523,7 +517,7 @@ struct ContentView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
                     .font(.system(size: 12, weight: .bold))
-                Text("You're up to date!")
+                Text(LocalizedStringKey("You're up to date!"))
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.primary.opacity(0.8))
             }
@@ -548,7 +542,7 @@ struct ContentView: View {
                         .foregroundColor(.red)
                 }
                 
-                Text("Keep holding to reset app data...")
+                Text(LocalizedStringKey("Keep holding to reset app data..."))
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.primary.opacity(0.8))
             }
@@ -646,7 +640,7 @@ struct ContentView: View {
                 })
             } else {
                 Spacer()
-                Text("Pressure Playground requires macOS 12.0+")
+                Text(LocalizedStringKey("Pressure Playground requires macOS 12.0+"))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -754,36 +748,43 @@ struct ContentView: View {
             }
         }) {
             ZStack {
-                buttonBackground(isEnabled: manager.isHapticsEnabled)
+                buttonBackground(isEnabled: manager.isHapticsEnabled, isFocusActive: manager.isFocusActive)
                     .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
                 
                 HStack {
-                    Image(systemName: "power")
+                    Image(systemName: manager.isFocusActive ? "moon.stars.fill" : "power")
                     let disableHaptics: LocalizedStringKey = "DISABLE HAPTICS"
                     let enableHaptics: LocalizedStringKey = "ENABLE HAPTICS"
-                    Text(manager.isHapticsEnabled ? disableHaptics : enableHaptics)
+                    let focusActive: LocalizedStringKey = "FOCUS ACTIVE"
+                    Text(manager.isFocusActive ? focusActive : (manager.isHapticsEnabled ? disableHaptics : enableHaptics))
                 }
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundColor(manager.isFocusActive ? .secondary : .white)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // Hover tilt + glimmer shine (macOS 13+). This used to be on the big haptics button.
+            // 3D & GLIMMER EFFECT ON BIG HAPTICS BUTTON!!!
             .modifier(FloatingPerspectiveModifier())
             .animation(.easeInOut(duration: 0.18), value: manager.isHapticsEnabled)
         }
         .buttonStyle(HapticButtonStyle())
-        .help(Text(manager.isHapticsEnabled ? "Disable Haptics" : "Enable Haptics"))
+        .disabled(manager.isFocusActive)
+        .help(Text(manager.isFocusActive ? "Haptics managed by Focus" : (manager.isHapticsEnabled ? "Disable Haptics" : "Enable Haptics")))
         .padding(.horizontal, 14)
     }
     
     @ViewBuilder
-    private func buttonBackground(isEnabled: Bool) -> some View {
-        if #available(macOS 13.0, *) {
+    private func buttonBackground(isEnabled: Bool, isFocusActive: Bool) -> some View {
+        if isFocusActive {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(isEnabled ? Color.red.gradient : Color.slabPadAccent.gradient)
+                .strokeBorder(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round, dash: [5, 5]))
+                .foregroundColor(.secondary.opacity(0.4))
+                .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.primary.opacity(0.02)))
+        } else if #available(macOS 13.0, *) {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .fill(isEnabled ? Color.red.gradient : Color.accentColor.gradient)
                 .animation(.easeInOut(duration: 0.18), value: isEnabled)
         } else {
-            let base = isEnabled ? Color.red : Color.slabPadAccent
+            let base = isEnabled ? Color.red : Color.accentColor
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(
                     LinearGradient(
@@ -936,7 +937,7 @@ private struct ReleaseNotesMarkdownView: View {
                     Text(markdown)
                 }
             } else {
-                Text("Loading...")
+                Text(LocalizedStringKey("Loading..."))
                     .foregroundColor(.secondary)
             }
         }
