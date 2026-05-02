@@ -15,7 +15,10 @@
 "ENABLE HAPTICS" = "触覚を有効化";
 "Loading..." = "読み込み中…";
 "Keep holding to reset app data..." = "アプリデータをリセットするには押し続けてください...";
-
 "You're up to date!" = "最新の状態です！";
 "Error" = "エラー";
 "Update check failed" = "アップデートの確認に失敗しました";
+"View Pressure Playground" = "Pressure Playground を表示";
+"Settings" = "設定";
+"Dismiss" = "閉じる";
+"Close Playground" = "Playground を閉じる";

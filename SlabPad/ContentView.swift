@@ -134,7 +134,7 @@ struct ContentView: View {
                     .fixedSize(horizontal: true, vertical: false)
             }
             .buttonStyle(PopButtonStyle())
-            .help(Text("View Pressure Playground"))
+            .help(Text(LocalizedStringKey("View Pressure Playground")))
             
             Button(action: {
                 if manager.hasUpdateAvailable {
@@ -247,7 +247,7 @@ struct ContentView: View {
                     .cornerRadius(8)
             }
             .buttonStyle(PopButtonStyle())
-            .help(Text("Settings"))
+            .help(Text(LocalizedStringKey("Settings")))
 
             Button(action: {
                 if resetHoldTriggered { return }
@@ -276,7 +276,7 @@ struct ContentView: View {
                     .cornerRadius(8)
                     .overlay(powerHoldRing)
             }
-            .help(Text("Quit"))
+            .help(Text(LocalizedStringKey("Quit")))
             .buttonStyle(PopButtonStyle())
             .simultaneousGesture(
                 DragGesture(minimumDistance: 0)
@@ -467,7 +467,7 @@ struct ContentView: View {
                     .frame(width: 16, height: 16)
             }
             .buttonStyle(PopButtonStyle())
-            .help(Text("Dismiss"))
+            .help(Text(LocalizedStringKey("Dismiss")))
             .padding(10)
         }
         .background(
@@ -517,7 +517,7 @@ struct ContentView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
                     .font(.system(size: 12, weight: .bold))
-                Text("You're up to date!")
+                Text(LocalizedStringKey("You're up to date!"))
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.primary.opacity(0.8))
             }
@@ -542,7 +542,7 @@ struct ContentView: View {
                         .foregroundColor(.red)
                 }
                 
-                Text("Keep holding to reset app data...")
+                Text(LocalizedStringKey("Keep holding to reset app data..."))
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.primary.opacity(0.8))
             }
@@ -640,7 +640,7 @@ struct ContentView: View {
                 })
             } else {
                 Spacer()
-                Text("Pressure Playground requires macOS 12.0+")
+                Text(LocalizedStringKey("Pressure Playground requires macOS 12.0+"))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -937,7 +937,7 @@ private struct ReleaseNotesMarkdownView: View {
                     Text(markdown)
                 }
             } else {
-                Text("Loading...")
+                Text(LocalizedStringKey("Loading..."))
                     .foregroundColor(.secondary)
             }
         }

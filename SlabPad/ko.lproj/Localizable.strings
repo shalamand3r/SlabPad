@@ -15,7 +15,10 @@
 "ENABLE HAPTICS" = "햅틱 활성화";
 "Loading..." = "로딩 중...";
 "Keep holding to reset app data..." = "앱 데이터를 초기화하려면 계속 누르고 계세요...";
-
 "You're up to date!" = "최신 버전입니다!";
 "Error" = "오류";
 "Update check failed" = "업데이트 확인 실패";
+"View Pressure Playground" = "Pressure Playground 보기";
+"Settings" = "설정";
+"Dismiss" = "닫기";
+"Close Playground" = "Playground 닫기";

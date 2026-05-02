@@ -15,7 +15,10 @@
 "ENABLE HAPTICS" = "ATTIVA FEEDBACK";
 "Loading..." = "Caricamento...";
 "Keep holding to reset app data..." = "Continua a tenere premuto per ripristinare i dati dell'app...";
-
 "You're up to date!" = "Sei aggiornato!";
 "Error" = "Errore";
 "Update check failed" = "Controllo aggiornamenti fallito";
+"View Pressure Playground" = "Visualizza Pressure Playground";
+"Settings" = "Impostazioni";
+"Dismiss" = "Ignora";
+"Close Playground" = "Chiudi Playground";

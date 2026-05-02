@@ -15,7 +15,10 @@
 "ENABLE HAPTICS" = "ATIVAR TATO";
 "Loading..." = "Carregando...";
 "Keep holding to reset app data..." = "Mantenha pressionado para redefinir os dados do aplicativo...";
-
 "You're up to date!" = "Você está atualizado!";
 "Error" = "Erro";
 "Update check failed" = "Falha ao verificar atualizações";
+"View Pressure Playground" = "Ver Pressure Playground";
+"Settings" = "Ajustes";
+"Dismiss" = "Ignorar";
+"Close Playground" = "Fechar Playground";

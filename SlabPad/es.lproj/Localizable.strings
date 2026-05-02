@@ -15,7 +15,10 @@
 "ENABLE HAPTICS" = "ACTIVAR VIBRACIÓN";
 "Loading..." = "Cargando...";
 "Keep holding to reset app data..." = "Mantén presionado para restablecer los datos de la aplicación...";
-
 "You're up to date!" = "¡Estás al día!";
 "Error" = "Error";
 "Update check failed" = "Error al buscar actualizaciones";
+"View Pressure Playground" = "Ver Pressure Playground";
+"Settings" = "Ajustes";
+"Dismiss" = "Descartar";
+"Close Playground" = "Cerrar Playground";

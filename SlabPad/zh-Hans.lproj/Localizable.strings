@@ -15,7 +15,10 @@
 "ENABLE HAPTICS" = "启用触感";
 "Loading..." = "加载中...";
 "Keep holding to reset app data..." = "继续按住以重置应用数据...";
-
 "You're up to date!" = "软件已是最新！";
 "Error" = "错误";
 "Update check failed" = "检查更新失败";
+"View Pressure Playground" = "查看 Pressure Playground";
+"Settings" = "设置";
+"Dismiss" = "忽略";
+"Close Playground" = "关闭 Playground";
