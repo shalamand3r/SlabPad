@@ -147,7 +147,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func handlePopoverNeedsResize() {
         guard popover.isShown else { return }
-        adjustPopoverSize()
+        
+        DispatchQueue.main.async {
+            self.adjustPopoverSize()
+        }
     }
 
     private func adjustPopoverSize() {
