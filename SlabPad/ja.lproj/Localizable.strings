@@ -1,33 +1,39 @@
 // Settings
-"Launch at Login" = "ログイン時に起動";
-"Launch at Login (macOS 13+)" = "ログイン時に起動 (macOS 13+)";
-"Disable Haptics on Launch" = "起動時に触覚フィードバックを無効化";
-"Re-enable Haptics on Quit" = "終了時に触覚フィードバックを再有効化";
-"Invert Menu Bar Clicks" = "メニューバークリックを反転";
-"Settings" = "設定";
+"launch_at_login" = "ログイン時に起動";
+"launch_at_login_macos13" = "ログイン時に起動 (macOS 13+)";
+"disable_haptics_on_launch" = "起動時に触覚フィードバックを無効化";
+"re_enable_haptics_on_quit" = "終了時に触覚フィードバックを再有効化";
+"invert_menu_bar_clicks" = "メニューバークリックを反転";
+"settings" = "設定";
 
 // ContentView.swift
-"Click to download the latest version!" = "クリックして最新バージョンを ダウンロード！";
-"Left-click the menu bar icon to instantly toggle haptics" = "メニューバーアイコンを左クリックして触覚フィードバックを素早く切り替えます";
-"Right-click the menu bar icon to instantly toggle haptics" = "メニュー バーアイコンを右クリックして触覚フィードバックを素早く切り替えます";
-"Quit" = "終了";
-"What's New" = "新機能";
-"Open on GitHub" = "GitHubで開く";
-"Close" = "閉じる";
-"DISABLE HAPTICS" = "触覚フィードバックを無効化";
-"ENABLE HAPTICS" = "触覚フィードバックを有効化";
-"Loading..." = "読み込み中...";
-"Keep holding to reset app data..." = "長押しでアプリデータをリセット...";
-"You're up to date!" = "最新の状態です！";
-"Error" = "エラー";
-"Update check failed" = "アップデートの確認に失敗しました";
-"View Pressure Playground" = "Pressure Playgroundを表示";
-"Dismiss" = "閉じる";
-"FOCUS ACTIVE" = "フォーカス有効";
-"View Release Notes" = "リリースノートを表示";
-"Check for Updates" = "アップデートを確認";
+"click_to_download_latest_version" = "クリックして最新バージョンを ダウンロード！";
+"hint_left_click_menu_bar" = "メニューバーアイコンを左クリックして触覚フィードバックを素早く切り替えます";
+"hint_right_click_menu_bar" = "メニュー バーアイコンを右クリックして触覚フィードバックを素早く切り替えます";
+"quit" = "終了";
+"whats_new" = "新機能";
+"open_on_github" = "GitHubで開く";
+"close" = "閉じる";
+"disable_haptics_button" = "触覚フィードバックを無効化";
+"enable_haptics_button" = "触覚フィードバックを有効化";
+"loading" = "読み込み中...";
+"keep_holding_to_reset_app_data" = "長押しでアプリデータをリセット...";
+"up_to_date" = "最新の状態です！";
+"error" = "エラー";
+"update_check_failed" = "アップデートの確認に失敗しました";
+"view_pressure_playground" = "Pressure Playgroundを表示";
+"dismiss" = "閉じる";
+"focus_active" = "フォーカス有効";
+"view_release_notes" = "リリースノートを表示";
+"check_for_updates" = "アップデートを確認";
 
 // PressurePlayground.swift
-"Pressure Playground requires macOS 12.0+" = "Pressure PlaygroundにはmacOS 12.0以降が必要です";
-"Close Playground" = "Playgroundを閉じる";
+"pressure_playground_requires_macos_12" = "Pressure PlaygroundにはmacOS 12.0以降が必要です";
+"close_playground" = "Playgroundを閉じる";
 
+// FocusFilter.swift (macOS Focus Filter UI)
+"focus_filter_title" = "SlabPad Silence";
+"focus_filter_description" = "Silences trackpad haptics when this Focus Mode is active.";
+"focus_filter_param_silence" = "Disable Haptics";
+"focus_filter_subtitle_on" = "Haptics disabled";
+"focus_filter_subtitle_off" = "Haptics enabled";

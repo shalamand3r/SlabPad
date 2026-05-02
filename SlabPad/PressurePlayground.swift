@@ -190,7 +190,7 @@ struct PressurePlayground: View {
                         .cornerRadius(6)
                 }
                 .buttonStyle(PopButtonStyle())
-                .help(Text(LocalizedStringKey("Close Playground")))
+                .help(Text(LocalizedStringKey("close_playground")))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                 
                 // pressure meter

@@ -1,33 +1,39 @@
 // Settings
-"Launch at Login" = "Start bij inloggen";
-"Launch at Login (macOS 13+)" = "Start bij inloggen (macOS 13+)";
-"Disable Haptics on Launch" = "Schakel haptiek uit bij opstarten";
-"Re-enable Haptics on Quit" = "Schakel haptiek opnieuw in bij afsluiten";
-"Invert Menu Bar Clicks" = "Keer menubalkklikken om";
-"Settings" = "Instellingen";
+"launch_at_login" = "Start bij inloggen";
+"launch_at_login_macos13" = "Start bij inloggen (macOS 13+)";
+"disable_haptics_on_launch" = "Schakel haptiek uit bij opstarten";
+"re_enable_haptics_on_quit" = "Schakel haptiek opnieuw in bij afsluiten";
+"invert_menu_bar_clicks" = "Keer menubalkklikken om";
+"settings" = "Instellingen";
 
 // ContentView.swift
-"Click to download the latest version!" = "Klik om de laatste versie te downloaden!";
-"Left-click the menu bar icon to instantly toggle haptics" = "Klik links op het menubalkicoon om haptiek direct in/uit te schakelen";
-"Right-click the menu bar icon to instantly toggle haptics" = "Klik rechts op het menubalkicoon om haptiek direct in/uit te schakelen";
-"Quit" = "Stop";
-"What's New" = "Wat is er nieuw";
-"Open on GitHub" = "Open op GitHub";
-"Close" = "Sluit";
-"DISABLE HAPTICS" = "SCHAKEL HAPTIEK UIT";
-"ENABLE HAPTICS" = "SCHAKEL HAPTIEK IN";
-"Loading..." = "Laden...";
-"Keep holding to reset app data..." = "Houd ingedrukt om appgegevens te resetten...";
-"You're up to date!" = "Je bent up-to-date!";
-"Error" = "Fout";
-"Update check failed" = "Updatecontrole mislukt";
-"View Pressure Playground" = "Bekijk Pressure Playground";
-"Dismiss" = "Sluit";
-"FOCUS ACTIVE" = "FOCUS ACTIEF";
-"View Release Notes" = "Versienotities bekijken";
-"Check for Updates" = "Controleren op updates";
+"click_to_download_latest_version" = "Klik om de laatste versie te downloaden!";
+"hint_left_click_menu_bar" = "Klik links op het menubalkicoon om haptiek direct in/uit te schakelen";
+"hint_right_click_menu_bar" = "Klik rechts op het menubalkicoon om haptiek direct in/uit te schakelen";
+"quit" = "Stop";
+"whats_new" = "Wat is er nieuw";
+"open_on_github" = "Open op GitHub";
+"close" = "Sluit";
+"disable_haptics_button" = "SCHAKEL HAPTIEK UIT";
+"enable_haptics_button" = "SCHAKEL HAPTIEK IN";
+"loading" = "Laden...";
+"keep_holding_to_reset_app_data" = "Houd ingedrukt om appgegevens te resetten...";
+"up_to_date" = "Je bent up-to-date!";
+"error" = "Fout";
+"update_check_failed" = "Updatecontrole mislukt";
+"view_pressure_playground" = "Bekijk Pressure Playground";
+"dismiss" = "Sluit";
+"focus_active" = "FOCUS ACTIEF";
+"view_release_notes" = "Versienotities bekijken";
+"check_for_updates" = "Controleren op updates";
 
 // PressurePlayground.swift
-"Pressure Playground requires macOS 12.0+" = "Pressure Playground vereist macOS 12.0+";
-"Close Playground" = "Sluit Playground";
+"pressure_playground_requires_macos_12" = "Pressure Playground vereist macOS 12.0+";
+"close_playground" = "Sluit Playground";
 
+// FocusFilter.swift (macOS Focus Filter UI)
+"focus_filter_title" = "SlabPad Silence";
+"focus_filter_description" = "Silences trackpad haptics when this Focus Mode is active.";
+"focus_filter_param_silence" = "Disable Haptics";
+"focus_filter_subtitle_on" = "Haptics disabled";
+"focus_filter_subtitle_off" = "Haptics enabled";

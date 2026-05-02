@@ -1,33 +1,39 @@
 // Settings
-"Launch at Login" = "登录时启动";
-"Launch at Login (macOS 13+)" = "登录时启动 (macOS 13+)";
-"Disable Haptics on Launch" = "启动时禁用触感反馈";
-"Re-enable Haptics on Quit" = "退出时重新启用触感反馈";
-"Invert Menu Bar Clicks" = "反转菜单栏点击";
-"Settings" = "设置";
+"launch_at_login" = "登录时启动";
+"launch_at_login_macos13" = "登录时启动 (macOS 13+)";
+"disable_haptics_on_launch" = "启动时禁用触感反馈";
+"re_enable_haptics_on_quit" = "退出时重新启用触感反馈";
+"invert_menu_bar_clicks" = "反转菜单栏点击";
+"settings" = "设置";
 
 // ContentView.swift
-"Click to download the latest version!" = "点击下载最新版本！";
-"Left-click the menu bar icon to instantly toggle haptics" = "左键点击菜单栏图标可快速切换触感反馈";
-"Right-click the menu bar icon to instantly toggle haptics" = "右键点击 菜单栏图标可快速切换触感反馈";
-"Quit" = "退出";
-"What's New" = "新功能";
-"Open on GitHub" = "在 GitHub 上打开";
-"Close" = "关闭";
-"DISABLE HAPTICS" = "禁用触感反馈";
-"ENABLE HAPTICS" = "启用触感反馈";
-"Loading..." = "正在加载...";
-"Keep holding to reset app data..." = "长按以重置应用数据...";
-"You're up to date!" = "已是最新版本！";
-"Error" = "错误";
-"Update check failed" = "更新检查失败";
-"View Pressure Playground" = "查看 Pressure Playground";
-"Dismiss" = "关闭";
-"FOCUS ACTIVE" = "焦点已激活";
-"View Release Notes" = "查看版本说明";
-"Check for Updates" = "检查更新";
+"click_to_download_latest_version" = "点击下载最新版本！";
+"hint_left_click_menu_bar" = "左键点击菜单栏图标可快速切换触感反馈";
+"hint_right_click_menu_bar" = "右键点击 菜单栏图标可快速切换触感反馈";
+"quit" = "退出";
+"whats_new" = "新功能";
+"open_on_github" = "在 GitHub 上打开";
+"close" = "关闭";
+"disable_haptics_button" = "禁用触感反馈";
+"enable_haptics_button" = "启用触感反馈";
+"loading" = "正在加载...";
+"keep_holding_to_reset_app_data" = "长按以重置应用数据...";
+"up_to_date" = "已是最新版本！";
+"error" = "错误";
+"update_check_failed" = "更新检查失败";
+"view_pressure_playground" = "查看 Pressure Playground";
+"dismiss" = "关闭";
+"focus_active" = "焦点已激活";
+"view_release_notes" = "查看版本说明";
+"check_for_updates" = "检查更新";
 
 // PressurePlayground.swift
-"Pressure Playground requires macOS 12.0+" = "Pressure Playground 需要 macOS 12.0 或更高版本";
-"Close Playground" = "关闭 Playground";
+"pressure_playground_requires_macos_12" = "Pressure Playground 需要 macOS 12.0 或更高版本";
+"close_playground" = "关闭 Playground";
 
+// FocusFilter.swift (macOS Focus Filter UI)
+"focus_filter_title" = "SlabPad Silence";
+"focus_filter_description" = "Silences trackpad haptics when this Focus Mode is active.";
+"focus_filter_param_silence" = "Disable Haptics";
+"focus_filter_subtitle_on" = "Haptics disabled";
+"focus_filter_subtitle_off" = "Haptics enabled";

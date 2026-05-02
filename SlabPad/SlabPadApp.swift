@@ -71,6 +71,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
 
+        manager.$isFocusActive
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.updateIcon()
+            }
+            .store(in: &cancellables)
+
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
             selector: #selector(handleWake),
@@ -136,7 +143,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     
     private func updateIcon() {
         guard let button = statusBarItem.button else { return }
-        let iconName = MenuBarIcon.symbolName(hapticsEnabled: manager.isHapticsEnabled)
+        let effectiveHapticsEnabled = manager.isFocusActive ? false : manager.isHapticsEnabled
+        let iconName = MenuBarIcon.symbolName(hapticsEnabled: effectiveHapticsEnabled)
         button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "SlabPad")
     }
     

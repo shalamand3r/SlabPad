@@ -1,33 +1,39 @@
 // Settings
-"Launch at Login" = "Iniciar al inicio de sesión";
-"Launch at Login (macOS 13+)" = "Iniciar al inicio de sesión (macOS 13+)";
-"Disable Haptics on Launch" = "Desactivar respuesta háptica al iniciar";
-"Re-enable Haptics on Quit" = "Reactivar respuesta háptica al salir";
-"Invert Menu Bar Clicks" = "Invertir clics de la barra de menús";
-"Settings" = "Ajustes";
+"launch_at_login" = "Iniciar al inicio de sesión";
+"launch_at_login_macos13" = "Iniciar al inicio de sesión (macOS 13+)";
+"disable_haptics_on_launch" = "Desactivar respuesta háptica al iniciar";
+"re_enable_haptics_on_quit" = "Reactivar respuesta háptica al salir";
+"invert_menu_bar_clicks" = "Invertir clics de la barra de menús";
+"settings" = "Ajustes";
 
 // ContentView.swift
-"Click to download the latest version!" = "¡Haz clic para descargar la última versión!";
-"Left-click the menu bar icon to instantly toggle haptics" = "Haz clic izquierdo en el icono de la barra de menús para alternar la respuesta háptica";
-"Right-click the menu bar icon to instantly toggle haptics" = "Haz clic derecho en el icono de la barra de menús para alternar la respuesta háptica";
-"Quit" = "Salir";
-"What's New" = "Novedades";
-"Open on GitHub" = "Abrir en GitHub";
-"Close" = "Cerrar";
-"DISABLE HAPTICS" = "DESACTIVAR HÁPTICA";
-"ENABLE HAPTICS" = "ACTIVAR HÁPTICA";
-"Loading..." = "Cargando...";
-"Keep holding to reset app data..." = "Mantén presionado para restablecer datos de la app...";
-"You're up to date!" = "¡Tu versión está actualizada!";
-"Error" = "Error";
-"Update check failed" = "Error al comprobar actualizaciones";
-"View Pressure Playground" = "Ver Pressure Playground";
-"Dismiss" = "Descartar";
-"FOCUS ACTIVE" = "ENFOQUE ACTIVO";
-"View Release Notes" = "Ver notas de la versión";
-"Check for Updates" = "Buscar actualizaciones";
+"click_to_download_latest_version" = "¡Haz clic para descargar la última versión!";
+"hint_left_click_menu_bar" = "Haz clic izquierdo en el icono de la barra de menús para alternar la respuesta háptica";
+"hint_right_click_menu_bar" = "Haz clic derecho en el icono de la barra de menús para alternar la respuesta háptica";
+"quit" = "Salir";
+"whats_new" = "Novedades";
+"open_on_github" = "Abrir en GitHub";
+"close" = "Cerrar";
+"disable_haptics_button" = "DESACTIVAR HÁPTICA";
+"enable_haptics_button" = "ACTIVAR HÁPTICA";
+"loading" = "Cargando...";
+"keep_holding_to_reset_app_data" = "Mantén presionado para restablecer datos de la app...";
+"up_to_date" = "¡Tu versión está actualizada!";
+"error" = "Error";
+"update_check_failed" = "Error al comprobar actualizaciones";
+"view_pressure_playground" = "Ver Pressure Playground";
+"dismiss" = "Descartar";
+"focus_active" = "ENFOQUE ACTIVO";
+"view_release_notes" = "Ver notas de la versión";
+"check_for_updates" = "Buscar actualizaciones";
 
 // PressurePlayground.swift
-"Pressure Playground requires macOS 12.0+" = "Pressure Playground requiere macOS 12.0+";
-"Close Playground" = "Cerrar Playground";
+"pressure_playground_requires_macos_12" = "Pressure Playground requiere macOS 12.0+";
+"close_playground" = "Cerrar Playground";
 
+// FocusFilter.swift (macOS Focus Filter UI)
+"focus_filter_title" = "SlabPad Silence";
+"focus_filter_description" = "Silences trackpad haptics when this Focus Mode is active.";
+"focus_filter_param_silence" = "Disable Haptics";
+"focus_filter_subtitle_on" = "Haptics disabled";
+"focus_filter_subtitle_off" = "Haptics enabled";

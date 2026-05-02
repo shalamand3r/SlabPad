@@ -1,33 +1,39 @@
 // Settings
-"Launch at Login" = "Запускать при входе";
-"Launch at Login (macOS 13+)" = "Запускать при входе (macOS 13+)";
-"Disable Haptics on Launch" = "Отключить тактильный отклик при запуске";
-"Re-enable Haptics on Quit" = "Включить тактильный отклик при выходе";
-"Invert Menu Bar Clicks" = "Инвертировать клики в строке меню";
-"Settings" = "Настройки";
+"launch_at_login" = "Запускать при входе";
+"launch_at_login_macos13" = "Запускать при входе (macOS 13+)";
+"disable_haptics_on_launch" = "Отключить тактильный отклик при запуске";
+"re_enable_haptics_on_quit" = "Включить тактильный отклик при выходе";
+"invert_menu_bar_clicks" = "Инвертировать клики в строке меню";
+"settings" = "Настройки";
 
 // ContentView.swift
-"Click to download the latest version!" = "Нажмите, чтобы скачать последнюю версию!";
-"Left-click the menu bar icon to instantly toggle haptics" = "Нажмите левой кнопкой мыши на значок в строке меню, чтобы переключить тактильный отклик";
-"Right-click the menu bar icon to instantly toggle haptics" = "Нажмите правой кнопкой мыши на значок в строке меню, чтобы переключить тактильный отклик";
-"Quit" = "Выйти";
-"What's New" = "Что нового";
-"Open on GitHub" = "Открыть на GitHub";
-"Close" = "Закрыть";
-"DISABLE HAPTICS" = "ОТКЛЮЧИТЬ ТАКТИЛЬНЫЙ ОТКЛИК";
-"ENABLE HAPTICS" = "ВКЛЮЧИТЬ ТАКТИЛЬНЫЙ ОТКЛИК";
-"Loading..." = "Загрузка...";
-"Keep holding to reset app data..." = "Удерживайте, чтобы сбросить данные приложения...";
-"You're up to date!" = "У вас последняя версия!";
-"Error" = "Ошибка";
-"Update check failed" = "Ошибка проверки обновлений";
-"View Pressure Playground" = "Открыть Pressure Playground";
-"Dismiss" = "Отклонить";
-"FOCUS ACTIVE" = "ФОКУС АКТИВЕН";
-"View Release Notes" = "Показать примечания к выпуску";
-"Check for Updates" = "Проверить обновления";
+"click_to_download_latest_version" = "Нажмите, чтобы скачать последнюю версию!";
+"hint_left_click_menu_bar" = "Нажмите левой кнопкой мыши на значок в строке меню, чтобы переключить тактильный отклик";
+"hint_right_click_menu_bar" = "Нажмите правой кнопкой мыши на значок в строке меню, чтобы переключить тактильный отклик";
+"quit" = "Выйти";
+"whats_new" = "Что нового";
+"open_on_github" = "Открыть на GitHub";
+"close" = "Закрыть";
+"disable_haptics_button" = "ОТКЛЮЧИТЬ ТАКТИЛЬНЫЙ ОТКЛИК";
+"enable_haptics_button" = "ВКЛЮЧИТЬ ТАКТИЛЬНЫЙ ОТКЛИК";
+"loading" = "Загрузка...";
+"keep_holding_to_reset_app_data" = "Удерживайте, чтобы сбросить данные приложения...";
+"up_to_date" = "У вас последняя версия!";
+"error" = "Ошибка";
+"update_check_failed" = "Ошибка проверки обновлений";
+"view_pressure_playground" = "Открыть Pressure Playground";
+"dismiss" = "Отклонить";
+"focus_active" = "ФОКУС АКТИВЕН";
+"view_release_notes" = "Показать примечания к выпуску";
+"check_for_updates" = "Проверить обновления";
 
 // PressurePlayground.swift
-"Pressure Playground requires macOS 12.0+" = "Для Pressure Playground требуется macOS 12.0+";
-"Close Playground" = "Закрыть Playground";
+"pressure_playground_requires_macos_12" = "Для Pressure Playground требуется macOS 12.0+";
+"close_playground" = "Закрыть Playground";
 
+// FocusFilter.swift (macOS Focus Filter UI)
+"focus_filter_title" = "SlabPad Silence";
+"focus_filter_description" = "Silences trackpad haptics when this Focus Mode is active.";
+"focus_filter_param_silence" = "Disable Haptics";
+"focus_filter_subtitle_on" = "Haptics disabled";
+"focus_filter_subtitle_off" = "Haptics enabled";

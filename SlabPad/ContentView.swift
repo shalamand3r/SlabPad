@@ -52,10 +52,10 @@ struct ContentView: View {
 
     private var launchAtLoginTitle: LocalizedStringKey {
         if manager.supportsLaunchAtLogin {
-            return "Launch at Login"
+            return "launch_at_login"
         }
 
-        return "Launch at Login (macOS 13+)"
+        return "launch_at_login_macos13"
     }
     
     private var latestVersionText: String {
@@ -91,7 +91,7 @@ struct ContentView: View {
         .onChange(of: showPressurePlayground) { _ in requestPopoverResize() }
     }
 
-    private func showError(_ message: String) {
+    private func showError(_ message: LocalizedStringKey) {
         toastManager.show(.error(message))
     }
     
@@ -134,7 +134,7 @@ struct ContentView: View {
                     .fixedSize(horizontal: true, vertical: false)
             }
             .buttonStyle(PopButtonStyle())
-            .help(Text(LocalizedStringKey("View Pressure Playground")))
+            .help(Text(LocalizedStringKey("view_pressure_playground")))
             
             Button(action: {
                 if manager.hasUpdateAvailable {
@@ -150,9 +150,9 @@ struct ContentView: View {
                         switch result {
                         case .success(let isAvailable):
                             if !isAvailable {
-                                toastManager.show(.upToDate)
+                                toastManager.show(.success(LocalizedStringKey("up_to_date")))
                             }                        case .failure:
-                            showError(LocalizedStringKey("Update check failed"))
+                            showError(LocalizedStringKey("update_check_failed"))
                         }
                     }
                 }
@@ -186,7 +186,7 @@ struct ContentView: View {
                 .animation(.easeInOut(duration: 0.18), value: manager.isCheckingForUpdates)
             }
             .buttonStyle(PopButtonStyle())
-            .help(Text(manager.hasUpdateAvailable ? LocalizedStringKey("View Release Notes") : LocalizedStringKey("Check for Updates")))
+            .help(Text(manager.hasUpdateAvailable ? LocalizedStringKey("view_release_notes") : LocalizedStringKey("check_for_updates")))
             Spacer(minLength: 8)
             if manager.hasUpdateAvailable, let downloadURL = manager.latestDownloadZipURL {
                 Button {
@@ -205,7 +205,7 @@ struct ContentView: View {
                         .background(updatePressed ? Color.green.opacity(0.18) : Color.clear)
                         .cornerRadius(8)
                 }
-                .help(Text(LocalizedStringKey("Click to download the latest version!")))
+                .help(Text(LocalizedStringKey("click_to_download_latest_version")))
                 .buttonStyle(PopButtonStyle())
                 .onHover { hovering in
                     withAnimation(.easeInOut(duration: 0.18)) {
@@ -247,7 +247,7 @@ struct ContentView: View {
                     .cornerRadius(8)
             }
             .buttonStyle(PopButtonStyle())
-            .help(Text(LocalizedStringKey("Settings")))
+            .help(Text(LocalizedStringKey("settings")))
 
             Button(action: {
                 if resetHoldTriggered { return }
@@ -276,7 +276,7 @@ struct ContentView: View {
                     .cornerRadius(8)
                     .overlay(powerHoldRing)
             }
-            .help(Text(LocalizedStringKey("Quit")))
+            .help(Text(LocalizedStringKey("quit")))
             .buttonStyle(PopButtonStyle())
             .simultaneousGesture(
                 DragGesture(minimumDistance: 0)
@@ -441,8 +441,8 @@ struct ContentView: View {
     }
 
     private var topHintView: some View {
-        let leftClick: LocalizedStringKey = "Left-click the menu bar icon to instantly toggle haptics"
-        let rightClick: LocalizedStringKey = "Right-click the menu bar icon to instantly toggle haptics"
+        let leftClick: LocalizedStringKey = "hint_left_click_menu_bar"
+        let rightClick: LocalizedStringKey = "hint_right_click_menu_bar"
         
         return ZStack(alignment: .trailing) {
             Text(manager.invertClicks ? leftClick : rightClick)
@@ -467,7 +467,7 @@ struct ContentView: View {
                     .frame(width: 16, height: 16)
             }
             .buttonStyle(PopButtonStyle())
-            .help(Text(LocalizedStringKey("Dismiss")))
+            .help(Text(LocalizedStringKey("dismiss")))
             .padding(10)
         }
         .background(
@@ -506,8 +506,6 @@ struct ContentView: View {
             infoToastView(message: message, systemImage: systemImage)
         case .success(let message):
             successToastView(message: message)
-        case .warning(let message):
-            warningToastView(message: message)
         }
     }
 
@@ -517,7 +515,7 @@ struct ContentView: View {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
                     .font(.system(size: 12, weight: .bold))
-                Text(LocalizedStringKey("You're up to date!"))
+                Text(LocalizedStringKey("up_to_date"))
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.primary.opacity(0.8))
             }
@@ -542,59 +540,46 @@ struct ContentView: View {
                         .foregroundColor(.red)
                 }
                 
-                Text(LocalizedStringKey("Keep holding to reset app data..."))
+                Text(LocalizedStringKey("keep_holding_to_reset_app_data"))
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.primary.opacity(0.8))
             }
         }
     }
 
-    private func errorToastView(message: String) -> some View {
+    private func errorToastView(message: LocalizedStringKey) -> some View {
         ToastView {
             HStack(spacing: 8) {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundColor(.red)
                     .font(.system(size: 12, weight: .bold))
-                Text(message.isEmpty ? "Error" : LocalizedStringKey(message))
+                Text(message)
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.primary.opacity(0.8))
             }
         }
     }
 
-    private func infoToastView(message: String, systemImage: String?) -> some View {
+    private func infoToastView(message: LocalizedStringKey, systemImage: String?) -> some View {
         ToastView {
             HStack(spacing: 8) {
                 Image(systemName: systemImage ?? "info.circle.fill")
                     .foregroundColor(.blue)
                     .font(.system(size: 12, weight: .bold))
-                Text(LocalizedStringKey(message))
+                Text(message)
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.primary.opacity(0.8))
             }
         }
     }
 
-    private func successToastView(message: String) -> some View {
+    private func successToastView(message: LocalizedStringKey) -> some View {
         ToastView {
             HStack(spacing: 8) {
                 Image(systemName: "checkmark.circle.fill")
                     .foregroundColor(.green)
                     .font(.system(size: 12, weight: .bold))
-                Text(LocalizedStringKey(message))
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary.opacity(0.8))
-            }
-        }
-    }
-
-    private func warningToastView(message: String) -> some View {
-        ToastView {
-            HStack(spacing: 8) {
-                Image(systemName: "exclamationmark.triangle.fill")
-                    .foregroundColor(.orange)
-                    .font(.system(size: 12, weight: .bold))
-                Text(LocalizedStringKey(message))
+                Text(message)
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.primary.opacity(0.8))
             }
@@ -611,15 +596,15 @@ struct ContentView: View {
 
             Divider().opacity(0.2)
 
-            SettingsRow(title: LocalizedStringKey("Disable Haptics on Launch"), isOn: $manager.disableOnLaunch)
+            SettingsRow(title: LocalizedStringKey("disable_haptics_on_launch"), isOn: $manager.disableOnLaunch)
 
             Divider().opacity(0.2)
 
-            SettingsRow(title: LocalizedStringKey("Re-enable Haptics on Quit"), isOn: $manager.reEnableOnQuit)
+            SettingsRow(title: LocalizedStringKey("re_enable_haptics_on_quit"), isOn: $manager.reEnableOnQuit)
 
             Divider().opacity(0.2)
 
-            SettingsRow(title: LocalizedStringKey("Invert Menu Bar Clicks"), isOn: $manager.invertClicks)
+            SettingsRow(title: LocalizedStringKey("invert_menu_bar_clicks"), isOn: $manager.invertClicks)
         }
         .padding(14)
         .frame(maxWidth: .infinity)
@@ -640,7 +625,7 @@ struct ContentView: View {
                 })
             } else {
                 Spacer()
-                Text(LocalizedStringKey("Pressure Playground requires macOS 12.0+"))
+                Text(LocalizedStringKey("pressure_playground_requires_macos_12"))
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)
@@ -657,7 +642,7 @@ struct ContentView: View {
     }
 
     private var releaseNotesSection: some View {
-        let titleLatest: LocalizedStringKey = "What's New"
+        let titleLatest: LocalizedStringKey = "whats_new"
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
@@ -675,7 +660,7 @@ struct ContentView: View {
                             .foregroundColor(.secondary.opacity(0.7))
                     }
                     .buttonStyle(PopButtonStyle())
-                    .help(Text(LocalizedStringKey("Open on GitHub")))
+                    .help(Text(LocalizedStringKey("open_on_github")))
                 }
 
                 Button {
@@ -691,7 +676,7 @@ struct ContentView: View {
                         .cornerRadius(6)
                 }
                 .buttonStyle(PopButtonStyle())
-                .help(Text(LocalizedStringKey("Close")))
+                .help(Text(LocalizedStringKey("close")))
             }
 
             Divider().opacity(0.2)
@@ -753,9 +738,9 @@ struct ContentView: View {
                 
                 HStack {
                     Image(systemName: manager.isFocusActive ? "moon.stars.fill" : "power")
-                    let disableHaptics: LocalizedStringKey = "DISABLE HAPTICS"
-                    let enableHaptics: LocalizedStringKey = "ENABLE HAPTICS"
-                    let focusActive: LocalizedStringKey = "FOCUS ACTIVE"
+                    let disableHaptics: LocalizedStringKey = "disable_haptics_button"
+                    let enableHaptics: LocalizedStringKey = "enable_haptics_button"
+                    let focusActive: LocalizedStringKey = "focus_active"
                     Text(manager.isFocusActive ? focusActive : (manager.isHapticsEnabled ? disableHaptics : enableHaptics))
                 }
                 .font(.headline)
@@ -768,7 +753,6 @@ struct ContentView: View {
         }
         .buttonStyle(HapticButtonStyle())
         .disabled(manager.isFocusActive)
-        .help(Text(manager.isFocusActive ? LocalizedStringKey("Haptics managed by Focus") : (manager.isHapticsEnabled ? LocalizedStringKey("Disable Haptics") : LocalizedStringKey("Enable Haptics"))))
         .padding(.horizontal, 14)
     }
     
@@ -937,7 +921,7 @@ private struct ReleaseNotesMarkdownView: View {
                     Text(markdown)
                 }
             } else {
-                Text(LocalizedStringKey("Loading..."))
+                Text(LocalizedStringKey("loading"))
                     .foregroundColor(.secondary)
             }
         }
