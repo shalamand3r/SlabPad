@@ -30,6 +30,11 @@ struct ContentView: View {
     @State private var powerHoldDidStartProgress = false
     @State private var ignoreNextPowerTap = false
     @State private var showUpToDateToast = false
+    @State private var showResetToast = false
+    @State private var showInvertToast = false
+    @State private var showErrorToast = false
+    @State private var errorMessage = ""
+    @State private var resetCountdownValue = 2
     
     private let spring = Animation.spring(response: 0.5, dampingFraction: 0.82)
 
@@ -74,7 +79,8 @@ struct ContentView: View {
     
     private var latestVersionText: String {
         guard let latestTag = manager.latestReleaseTag else { return appVersionText }
-        return "v\(latestTag)"
+        let tag = latestTag.trimmingCharacters(in: .whitespacesAndNewlines)
+        return tag.hasPrefix("v") ? tag : "v\(tag)"
     }
     
     private var shouldShowLatestInVersionPill: Bool {
@@ -94,7 +100,12 @@ struct ContentView: View {
             Group {
                 if showUpToDateToast {
                     upToDateToast
-                        .padding(.bottom, 20)
+                } else if showResetToast {
+                    resetToast
+                } else if showInvertToast {
+                    invertToast
+                } else if showErrorToast {
+                    errorToast
                 }
             },
             alignment: .bottom
@@ -104,6 +115,44 @@ struct ContentView: View {
         .onChange(of: showPressurePlayground) { _ in requestPopoverResize() }
     }
 
+    private func showError(_ message: String) {
+        errorMessage = message
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+            showErrorToast = true
+        }
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
+                showErrorToast = false
+            }
+        }
+    }
+    
+    private struct ToastView<Content: View>: View {
+        let content: Content
+        
+        init(@ViewBuilder content: () -> Content) {
+            self.content = content()
+        }
+        
+        var body: some View {
+            content
+                .padding(.vertical, 8)
+                .padding(.horizontal, 16)
+                .background(
+                    VisualEffectView(material: .hudWindow, blendingMode: .withinWindow)
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
+                )
+                .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
+                .padding(.bottom, 20)
+                .transition(.asymmetric(
+                    insertion: .move(edge: .bottom).combined(with: .opacity),
+                    removal: .opacity.combined(with: .scale(scale: 0.95))
+                ))
+        }
+    }
+    
     private var headerSection: some View {
         HStack(spacing: 6) {
             Button(action: {
@@ -129,28 +178,41 @@ struct ContentView: View {
                             showPressurePlayground = false
                         }
                     }
-                } else {
-                    manager.checkForUpdate { isAvailable in
-                        if !isAvailable {
-                            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                                showUpToDateToast = true
-                            }
-                            
-                            // Auto-hide after 2 seconds
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                                withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
-                                    showUpToDateToast = false
+                } else if !manager.isCheckingForUpdates {
+                    manager.checkForUpdate { result in
+                        switch result {
+                        case .success(let isAvailable):
+                            if !isAvailable {
+                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                                    showUpToDateToast = true
+                                }
+                                
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                                    withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
+                                        showUpToDateToast = false
+                                    }
                                 }
                             }
+                        case .failure:
+                            showError("Update check failed")
                         }
                     }
                 }
             }) {
-                VersionPillLabel(
-                    current: appVersionText,
-                    latest: latestVersionText,
-                    showLatest: shouldShowLatestInVersionPill
-                )
+                HStack(spacing: 4) {
+                    if manager.isCheckingForUpdates {
+                        ProgressView()
+                            .controlSize(.small)
+                            .scaleEffect(0.6)
+                            .frame(width: 12, height: 12)
+                    }
+                    
+                    VersionPillLabel(
+                        current: appVersionText,
+                        latest: latestVersionText,
+                        showLatest: shouldShowLatestInVersionPill
+                    )
+                }
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .lineLimit(1)
                 .layoutPriority(1)
@@ -164,6 +226,7 @@ struct ContentView: View {
                 )
                 .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
                 .animation(.easeInOut(duration: 0.18), value: shouldShowLatestInVersionPill)
+                .animation(.easeInOut(duration: 0.18), value: manager.isCheckingForUpdates)
             }
             .buttonStyle(PopButtonStyle())
             Spacer(minLength: 8)
@@ -305,6 +368,11 @@ struct ContentView: View {
         let startWork = DispatchWorkItem {
             guard isPowerPressActive, !resetHoldTriggered else { return }
             powerHoldDidStartProgress = true
+            resetCountdownValue = 2
+            
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                showResetToast = true
+            }
 
             if !quitPressed {
                 withAnimation(spring) {
@@ -314,6 +382,14 @@ struct ContentView: View {
 
             withAnimation(.linear(duration: 2.0)) {
                 powerHoldProgress = 1
+            }
+
+            // Countdown timer
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                guard isPowerPressActive, !resetHoldTriggered else { return }
+                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                    resetCountdownValue = 1
+                }
             }
 
             let completeWork = DispatchWorkItem {
@@ -332,6 +408,10 @@ struct ContentView: View {
 
     private func endPowerHold() {
         isPowerPressActive = false
+
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
+            showResetToast = false
+        }
 
         cancelPowerHoldWorkItems()
         if powerHoldDidStartProgress && !resetHoldTriggered {
@@ -439,26 +519,75 @@ struct ContentView: View {
     }
 
     private var upToDateToast: some View {
-        HStack(spacing: 8) {
-            Image(systemName: "checkmark.circle.fill")
-                .foregroundColor(.green)
-                .font(.system(size: 12, weight: .bold))
-            Text("You're up to date!")
-                .font(.system(size: 11, weight: .bold, design: .rounded))
-                .foregroundColor(.primary.opacity(0.8))
+        ToastView {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                    .font(.system(size: 12, weight: .bold))
+                Text("You're up to date!")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary.opacity(0.8))
+            }
         }
-        .padding(.vertical, 8)
-        .padding(.horizontal, 16)
-        .background(
-            VisualEffectView(material: .hudWindow, blendingMode: .withinWindow)
-                .clipShape(Capsule())
-                .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
-        )
-        .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
-        .transition(.asymmetric(
-            insertion: .move(edge: .bottom).combined(with: .opacity),
-            removal: .opacity.combined(with: .scale(scale: 0.95))
-        ))
+    }
+
+    private var resetToast: some View {
+        ToastView {
+            HStack(spacing: 8) {
+                ZStack {
+                    if resetHoldTriggered {
+                        Image(systemName: "exclamationmark.circle.fill")
+                            .foregroundColor(.red)
+                            .font(.system(size: 14, weight: .bold))
+                    } else {
+                        ZStack {
+                            Circle()
+                                .stroke(Color.red.opacity(0.2), lineWidth: 2)
+                                .frame(width: 20, height: 20)
+                            Circle()
+                                .trim(from: 0, to: 1.0 - powerHoldProgress)
+                                .stroke(Color.red, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                                .frame(width: 20, height: 20)
+                                .rotationEffect(.degrees(-90))
+                            
+                            Text("\(resetCountdownValue)")
+                                .font(.system(size: 10, weight: .black, design: .monospaced))
+                                .foregroundColor(.red)
+                        }
+                    }
+                }
+                
+                Text(resetHoldTriggered ? "Resetting..." : "Keep holding to reset app data...")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary.opacity(0.8))
+            }
+        }
+    }
+    
+    private var invertToast: some View {
+        ToastView {
+            HStack(spacing: 8) {
+                Image(systemName: manager.invertClicks ? "rectangle.rightthird.inset.filled" : "rectangle.leftthird.inset.filled")
+                    .foregroundColor(.secondary)
+                    .font(.system(size: 12, weight: .bold))
+                Text(manager.invertClicks ? "Right Click" : "Left Click")
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary.opacity(0.8))
+            }
+        }
+    }
+    
+    private var errorToast: some View {
+        ToastView {
+            HStack(spacing: 8) {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(.red)
+                    .font(.system(size: 12, weight: .bold))
+                Text(errorMessage.isEmpty ? "Error" : LocalizedStringKey(errorMessage))
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary.opacity(0.8))
+            }
+        }
     }
     
     private var settingsSection: some View {
@@ -480,6 +609,18 @@ struct ContentView: View {
             Divider().opacity(0.2)
 
             SettingsRow(title: "Invert Menu Bar Clicks", isOn: $manager.invertClicks)
+                .onChange(of: manager.invertClicks) { _ in
+                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                        showInvertToast = true
+                    }
+                    
+                    // Auto-hide after 2.5 seconds
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
+                        withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
+                            showInvertToast = false
+                        }
+                    }
+                }
         }
         .padding(14)
         .frame(maxWidth: .infinity)
@@ -652,6 +793,8 @@ struct ContentView: View {
                 .foregroundColor(.white)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
+            // Hover tilt + glimmer shine (macOS 13+). This used to be on the big haptics button.
+            .modifier(FloatingPerspectiveModifier())
             .animation(.easeInOut(duration: 0.18), value: manager.isHapticsEnabled)
         }
         .buttonStyle(HapticButtonStyle())
@@ -692,6 +835,93 @@ struct PopButtonStyle: ButtonStyle {
         configuration.label
             .scaleEffect(configuration.isPressed ? 0.9 : 1.0)
             .animation(.spring(response: 0.25, dampingFraction: 0.5), value: configuration.isPressed)
+    }
+}
+
+private struct ViewSizePreferenceKey: PreferenceKey {
+    static var defaultValue: CGSize = .zero
+    static func reduce(value: inout CGSize, nextValue: () -> CGSize) {
+        value = nextValue()
+    }
+}
+
+private struct FloatingPerspectiveModifier: ViewModifier {
+    var cornerRadius: CGFloat = 12
+    var maxTilt: Double = 10
+    var shineMaxOpacity: Double = 0.14
+    var shineTravel: CGFloat = 150
+    var perspective: CGFloat = 0.2
+
+    @State private var viewSize: CGSize = .zero
+    @State private var rotation: (x: Double, y: Double) = (0, 0)
+    @State private var shineOffset: CGPoint = .zero
+    @State private var shineOpacity: Double = 0
+
+    func body(content: Content) -> some View {
+        if #available(macOS 13.0, *) {
+            content
+                .overlay(
+                    GeometryReader { geo in
+                        ZStack {
+                            LinearGradient(
+                                colors: [
+                                    .white.opacity(0),
+                                    .white.opacity(shineOpacity),
+                                    .white.opacity(0)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                            .scaleEffect(2.5)
+                            .offset(x: shineOffset.x, y: shineOffset.y)
+                            .blendMode(.screen)
+                            .allowsHitTesting(false)
+
+                            Color.clear
+                                .preference(key: ViewSizePreferenceKey.self, value: geo.size)
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+                )
+                .rotation3DEffect(
+                    .degrees(rotation.x),
+                    axis: (x: 1, y: 0, z: 0),
+                    anchor: .center,
+                    perspective: perspective
+                )
+                .rotation3DEffect(
+                    .degrees(rotation.y),
+                    axis: (x: 0, y: 1, z: 0),
+                    anchor: .center,
+                    perspective: perspective
+                )
+                .onPreferenceChange(ViewSizePreferenceKey.self) { newSize in
+                    viewSize = newSize
+                }
+                .onContinuousHover { phase in
+                    switch phase {
+                    case .active(let location):
+                        let w = max(viewSize.width, 1)
+                        let h = max(viewSize.height, 1)
+                        let x = (location.x / w) - 0.5
+                        let y = (location.y / h) - 0.5
+
+                        withAnimation(.interactiveSpring()) {
+                            rotation = (x: Double(y * -maxTilt), y: Double(x * maxTilt))
+                            shineOffset = CGPoint(x: x * shineTravel, y: y * shineTravel)
+                            shineOpacity = shineMaxOpacity
+                        }
+                    case .ended:
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
+                            rotation = (0, 0)
+                            shineOffset = .zero
+                            shineOpacity = 0
+                        }
+                    }
+                }
+        } else {
+            content
+        }
     }
 }
 
@@ -814,4 +1044,3 @@ struct ContentView_Previews: PreviewProvider {
     }
 }
 #endif
-

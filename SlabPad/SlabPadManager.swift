@@ -132,13 +132,22 @@ final class SlabPadManager: ObservableObject {
         }
     }
     
-    func checkForUpdate(completion: ((Bool) -> Void)? = nil) {
+    enum UpdateError: Error {
+        case invalidVersion
+        case invalidURL
+        case networkError(Error)
+        case apiError(String)
+        case decodingError(Error)
+    }
+    
+    func checkForUpdate(completion: ((Result<Bool, UpdateError>) -> Void)? = nil) {
         guard let currentVersion = SemVer(currentVersionString) else {
-            completion?(false)
+            completion?(.failure(.invalidVersion))
             return
         }
-        guard let url = URL(string: "https://api.github.com/repos/shalamand3r/SlabPad/releases/latest") else {
-            completion?(false)
+        let timestamp = Int(Date().timeIntervalSince1970)
+        guard let url = URL(string: "https://api.github.com/repos/shalamand3r/SlabPad/releases/latest?t=\(timestamp)") else {
+            completion?(.failure(.invalidURL))
             return
         }
 
@@ -153,28 +162,29 @@ final class SlabPadManager: ObservableObject {
             do {
                 let (data, response) = try await URLSession.shared.data(for: request)
                 guard let http = response as? HTTPURLResponse else {
-                    completion?(false)
+                    completion?(.failure(.networkError(NSError(domain: "SlabPad", code: -1))))
                     return
                 }
                 guard (200...299).contains(http.statusCode) else {
+                    let message: String
                     if let apiError = try? JSONDecoder().decode(GitHubAPIError.self, from: data) {
-                        logger.error("Update check failed: \(apiError.message, privacy: .public)")
+                        message = apiError.message
                     } else if let body = String(data: data, encoding: .utf8)?
                         .trimmingCharacters(in: .whitespacesAndNewlines),
                               !body.isEmpty {
-                        let snippet = body.prefix(300)
-                        logger.error("Update check failed: \(snippet, privacy: .public)")
+                        message = String(body.prefix(300))
                     } else {
-                        logger.error("Update check failed: HTTP \(http.statusCode, privacy: .public)")
+                        message = "HTTP \(http.statusCode)"
                     }
-                    completion?(false)
+                    logger.error("Update check failed: \(message, privacy: .public)")
+                    completion?(.failure(.apiError(message)))
                     return
                 }
 
                 do {
                     let release = try JSONDecoder().decode(GitHubReleaseResponse.self, from: data)
                     guard let latestVersion = SemVer(release.tagName) else {
-                        completion?(false)
+                        completion?(.failure(.decodingError(NSError(domain: "SlabPad", code: -2))))
                         return
                     }
                     let isUpdateAvailable = latestVersion > currentVersion
@@ -184,14 +194,14 @@ final class SlabPadManager: ObservableObject {
                     self.latestReleaseNotesMarkdown = release.body
                     self.latestDownloadZipURL = Self.makeDownloadZipURL(tagName: release.tagName)
                     self.hasUpdateAvailable = isUpdateAvailable
-                    completion?(isUpdateAvailable)
+                    completion?(.success(isUpdateAvailable))
                 } catch {
                     logger.error("Update check failed: \(String(describing: error), privacy: .public)")
-                    completion?(false)
+                    completion?(.failure(.decodingError(error)))
                 }
             } catch {
                 logger.error("Update check failed: \(String(describing: error), privacy: .public)")
-                completion?(false)
+                completion?(.failure(.networkError(error)))
             }
         }
     }
