@@ -99,6 +99,10 @@
 				it,
 				ko,
 				"zh-Hans",
+				ru,
+				tr,
+				ar,
+				nl,
 			);
 			mainGroup = C01B446C2F8ADB8500EEC7CD;
 			minimizedProjectReferenceProxies = 1;
@@ -270,7 +274,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.5;
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = mitsboochie.shalamand3r.SlabPad;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -302,7 +306,7 @@
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.5;
-				MARKETING_VERSION = 2.1;
+				MARKETING_VERSION = 2.0;
 				PRODUCT_BUNDLE_IDENTIFIER = mitsboochie.shalamand3r.SlabPad;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
