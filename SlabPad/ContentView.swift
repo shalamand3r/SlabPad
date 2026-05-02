@@ -5,12 +5,6 @@ import SwiftUI
 import Combine
 import Foundation
 
-private extension Color {
-    static var slabPadAccent: Color {
-        .accentColor
-    }
-}
-
 struct ContentView: View {
     @ObservedObject private var manager = SlabPadManager.shared
     @State private var showSettings = false
@@ -179,13 +173,13 @@ struct ContentView: View {
                 .font(.system(size: 10, weight: .bold, design: .monospaced))
                 .lineLimit(1)
                 .layoutPriority(1)
-                .foregroundColor(showReleaseNotes ? .slabPadAccent : .secondary.opacity(0.6))
+                .foregroundColor(showReleaseNotes ? .accentColor : .secondary.opacity(0.6))
                 .padding(.horizontal, 6)
                 .padding(.vertical, 2)
                 .background(
                     Capsule()
-                        .fill(showReleaseNotes ? Color.slabPadAccent.opacity(0.15) : Color.primary.opacity(0.06))
-                        .overlay(Capsule().stroke(showReleaseNotes ? Color.slabPadAccent.opacity(0.2) : Color.primary.opacity(0.1), lineWidth: 0.5))
+                        .fill(showReleaseNotes ? Color.accentColor.opacity(0.15) : Color.primary.opacity(0.06))
+                        .overlay(Capsule().stroke(showReleaseNotes ? Color.accentColor.opacity(0.2) : Color.primary.opacity(0.1), lineWidth: 0.5))
                 )
                 .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
                 .animation(.easeInOut(duration: 0.18), value: shouldShowLatestInVersionPill)
@@ -247,9 +241,9 @@ struct ContentView: View {
             }) {
                 Image(systemName: "gearshape.fill")
                     .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(showSettings ? .slabPadAccent : .secondary.opacity(0.6))
+                    .foregroundColor(showSettings ? .accentColor : .secondary.opacity(0.6))
                     .frame(width: 28, height: 28)
-                    .background(showSettings ? Color.slabPadAccent.opacity(0.15) : Color.clear)
+                    .background(showSettings ? Color.accentColor.opacity(0.15) : Color.clear)
                     .cornerRadius(8)
             }
             .buttonStyle(PopButtonStyle())
@@ -787,10 +781,10 @@ struct ContentView: View {
                 .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.primary.opacity(0.02)))
         } else if #available(macOS 13.0, *) {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(isEnabled ? Color.red.gradient : Color.slabPadAccent.gradient)
+                .fill(isEnabled ? Color.red.gradient : Color.accentColor.gradient)
                 .animation(.easeInOut(duration: 0.18), value: isEnabled)
         } else {
-            let base = isEnabled ? Color.red : Color.slabPadAccent
+            let base = isEnabled ? Color.red : Color.accentColor
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(
                     LinearGradient(
