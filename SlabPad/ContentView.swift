@@ -152,7 +152,7 @@ struct ContentView: View {
                             if !isAvailable {
                                 toastManager.show(.upToDate)
                             }                        case .failure:
-                            showError("Update check failed")
+                            showError(LocalizedStringKey("Update check failed"))
                         }
                     }
                 }
@@ -186,7 +186,7 @@ struct ContentView: View {
                 .animation(.easeInOut(duration: 0.18), value: manager.isCheckingForUpdates)
             }
             .buttonStyle(PopButtonStyle())
-            .help(Text(manager.hasUpdateAvailable ? "View Release Notes" : "Check for Updates"))
+            .help(Text(manager.hasUpdateAvailable ? LocalizedStringKey("View Release Notes") : LocalizedStringKey("Check for Updates")))
             Spacer(minLength: 8)
             if manager.hasUpdateAvailable, let downloadURL = manager.latestDownloadZipURL {
                 Button {
@@ -205,7 +205,7 @@ struct ContentView: View {
                         .background(updatePressed ? Color.green.opacity(0.18) : Color.clear)
                         .cornerRadius(8)
                 }
-                .help(Text("Click to download the latest version!"))
+                .help(Text(LocalizedStringKey("Click to download the latest version!")))
                 .buttonStyle(PopButtonStyle())
                 .onHover { hovering in
                     withAnimation(.easeInOut(duration: 0.18)) {
@@ -611,15 +611,15 @@ struct ContentView: View {
 
             Divider().opacity(0.2)
 
-            SettingsRow(title: "Disable Haptics on Launch", isOn: $manager.disableOnLaunch)
+            SettingsRow(title: LocalizedStringKey("Disable Haptics on Launch"), isOn: $manager.disableOnLaunch)
 
             Divider().opacity(0.2)
 
-            SettingsRow(title: "Re-enable Haptics on Quit", isOn: $manager.reEnableOnQuit)
+            SettingsRow(title: LocalizedStringKey("Re-enable Haptics on Quit"), isOn: $manager.reEnableOnQuit)
 
             Divider().opacity(0.2)
 
-            SettingsRow(title: "Invert Menu Bar Clicks", isOn: $manager.invertClicks)
+            SettingsRow(title: LocalizedStringKey("Invert Menu Bar Clicks"), isOn: $manager.invertClicks)
         }
         .padding(14)
         .frame(maxWidth: .infinity)
@@ -675,7 +675,7 @@ struct ContentView: View {
                             .foregroundColor(.secondary.opacity(0.7))
                     }
                     .buttonStyle(PopButtonStyle())
-                    .help(Text("Open on GitHub"))
+                    .help(Text(LocalizedStringKey("Open on GitHub")))
                 }
 
                 Button {
@@ -691,7 +691,7 @@ struct ContentView: View {
                         .cornerRadius(6)
                 }
                 .buttonStyle(PopButtonStyle())
-                .help(Text("Close"))
+                .help(Text(LocalizedStringKey("Close")))
             }
 
             Divider().opacity(0.2)
@@ -768,7 +768,7 @@ struct ContentView: View {
         }
         .buttonStyle(HapticButtonStyle())
         .disabled(manager.isFocusActive)
-        .help(Text(manager.isFocusActive ? "Haptics managed by Focus" : (manager.isHapticsEnabled ? "Disable Haptics" : "Enable Haptics")))
+        .help(Text(manager.isFocusActive ? LocalizedStringKey("Haptics managed by Focus") : (manager.isHapticsEnabled ? LocalizedStringKey("Disable Haptics") : LocalizedStringKey("Enable Haptics"))))
         .padding(.horizontal, 14)
     }
     
