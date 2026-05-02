@@ -29,12 +29,9 @@ struct ContentView: View {
     @State private var powerHoldProgress: CGFloat = 0
     @State private var powerHoldDidStartProgress = false
     @State private var ignoreNextPowerTap = false
-    @State private var showUpToDateToast = false
-    @State private var showResetToast = false
-    @State private var showInvertToast = false
-    @State private var showErrorToast = false
-    @State private var errorMessage = ""
     @State private var resetCountdownValue = 2
+    
+    @StateObject private var toastManager = ToastManager()
     
     private let spring = Animation.spring(response: 0.5, dampingFraction: 0.82)
 
@@ -97,17 +94,12 @@ struct ContentView: View {
         .padding(.bottom, 14)
         .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow))
         .overlay(
-            Group {
-                if showUpToDateToast {
-                    upToDateToast
-                } else if showResetToast {
-                    resetToast
-                } else if showInvertToast {
-                    invertToast
-                } else if showErrorToast {
-                    errorToast
+            VStack(spacing: 8) {
+                ForEach(toastManager.toasts) { toast in
+                    renderToast(toast)
                 }
-            },
+            }
+            .padding(.bottom, 20),
             alignment: .bottom
         )
         .onChange(of: showSettings) { _ in requestPopoverResize() }
@@ -116,16 +108,7 @@ struct ContentView: View {
     }
 
     private func showError(_ message: String) {
-        errorMessage = message
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-            showErrorToast = true
-        }
-        
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
-                showErrorToast = false
-            }
-        }
+        toastManager.show(.error(message))
     }
     
     private struct ToastView<Content: View>: View {
@@ -145,7 +128,6 @@ struct ContentView: View {
                         .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
                 )
                 .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
-                .padding(.bottom, 20)
                 .transition(.asymmetric(
                     insertion: .move(edge: .bottom).combined(with: .opacity),
                     removal: .opacity.combined(with: .scale(scale: 0.95))
@@ -183,17 +165,8 @@ struct ContentView: View {
                         switch result {
                         case .success(let isAvailable):
                             if !isAvailable {
-                                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                                    showUpToDateToast = true
-                                }
-                                
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                                    withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
-                                        showUpToDateToast = false
-                                    }
-                                }
-                            }
-                        case .failure:
+                                toastManager.show(.upToDate)
+                            }                        case .failure:
                             showError("Update check failed")
                         }
                     }
@@ -371,7 +344,7 @@ struct ContentView: View {
             resetCountdownValue = 2
             
             withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                showResetToast = true
+                updateResetToast()
             }
 
             if !quitPressed {
@@ -383,18 +356,29 @@ struct ContentView: View {
             withAnimation(.linear(duration: 2.0)) {
                 powerHoldProgress = 1
             }
+            
+            // Continuous progress updates for the toast
+            Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { timer in
+                if !isPowerPressActive || resetHoldTriggered {
+                    timer.invalidate()
+                } else {
+                    updateResetToast()
+                }
+            }
 
             // Countdown timer
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 guard isPowerPressActive, !resetHoldTriggered else { return }
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                     resetCountdownValue = 1
+                    updateResetToast()
                 }
             }
 
             let completeWork = DispatchWorkItem {
                 guard isPowerPressActive, !resetHoldTriggered else { return }
                 resetHoldTriggered = true
+                updateResetToast()
                 NotificationCenter.default.post(name: .slabPadRequestResetAndQuit, object: nil)
             }
 
@@ -409,9 +393,7 @@ struct ContentView: View {
     private func endPowerHold() {
         isPowerPressActive = false
 
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
-            showResetToast = false
-        }
+        toastManager.hideResetToast()
 
         cancelPowerHoldWorkItems()
         if powerHoldDidStartProgress && !resetHoldTriggered {
@@ -518,6 +500,35 @@ struct ContentView: View {
         }
     }
 
+    private func updateResetToast() {
+        guard isPowerPressActive || resetHoldTriggered else { return }
+        toastManager.updateResetToast(
+            progress: Double(powerHoldProgress),
+            countdown: resetCountdownValue,
+            isTriggered: resetHoldTriggered
+        )
+    }
+
+    @ViewBuilder
+    private func renderToast(_ toast: Toast) -> some View {
+        switch toast.type {
+        case .upToDate:
+            upToDateToast
+        case .reset(let progress, let countdown, let triggered):
+            resetToastView(progress: CGFloat(progress), countdown: countdown, triggered: triggered)
+        case .invert(let isRight):
+            invertToastView(isRight: isRight)
+        case .error(let message):
+            errorToastView(message: message)
+        case .info(let message, let systemImage):
+            infoToastView(message: message, systemImage: systemImage)
+        case .success(let message):
+            successToastView(message: message)
+        case .warning(let message):
+            warningToastView(message: message)
+        }
+    }
+
     private var upToDateToast: some View {
         ToastView {
             HStack(spacing: 8) {
@@ -531,11 +542,11 @@ struct ContentView: View {
         }
     }
 
-    private var resetToast: some View {
+    private func resetToastView(progress: CGFloat, countdown: Int, triggered: Bool) -> some View {
         ToastView {
             HStack(spacing: 8) {
                 ZStack {
-                    if resetHoldTriggered {
+                    if triggered {
                         Image(systemName: "exclamationmark.circle.fill")
                             .foregroundColor(.red)
                             .font(.system(size: 14, weight: .bold))
@@ -545,45 +556,84 @@ struct ContentView: View {
                                 .stroke(Color.red.opacity(0.2), lineWidth: 2)
                                 .frame(width: 20, height: 20)
                             Circle()
-                                .trim(from: 0, to: 1.0 - powerHoldProgress)
+                                .trim(from: 0, to: 1.0 - progress)
                                 .stroke(Color.red, style: StrokeStyle(lineWidth: 2, lineCap: .round))
                                 .frame(width: 20, height: 20)
                                 .rotationEffect(.degrees(-90))
                             
-                            Text("\(resetCountdownValue)")
+                            Text("\(countdown)")
                                 .font(.system(size: 10, weight: .black, design: .monospaced))
                                 .foregroundColor(.red)
                         }
                     }
                 }
                 
-                Text(resetHoldTriggered ? "Resetting..." : "Keep holding to reset app data...")
+                Text(triggered ? "Resetting..." : "Keep holding to reset app data...")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.primary.opacity(0.8))
             }
         }
     }
     
-    private var invertToast: some View {
+    private func invertToastView(isRight: Bool) -> some View {
         ToastView {
             HStack(spacing: 8) {
-                Image(systemName: manager.invertClicks ? "rectangle.rightthird.inset.filled" : "rectangle.leftthird.inset.filled")
+                Image(systemName: isRight ? "rectangle.rightthird.inset.filled" : "rectangle.leftthird.inset.filled")
                     .foregroundColor(.secondary)
                     .font(.system(size: 12, weight: .bold))
-                Text(manager.invertClicks ? "Right Click" : "Left Click")
+                Text(isRight ? "Right Click" : "Left Click")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.primary.opacity(0.8))
             }
         }
     }
     
-    private var errorToast: some View {
+    private func errorToastView(message: String) -> some View {
         ToastView {
             HStack(spacing: 8) {
                 Image(systemName: "xmark.circle.fill")
                     .foregroundColor(.red)
                     .font(.system(size: 12, weight: .bold))
-                Text(errorMessage.isEmpty ? "Error" : LocalizedStringKey(errorMessage))
+                Text(message.isEmpty ? "Error" : LocalizedStringKey(message))
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary.opacity(0.8))
+            }
+        }
+    }
+
+    private func infoToastView(message: String, systemImage: String?) -> some View {
+        ToastView {
+            HStack(spacing: 8) {
+                Image(systemName: systemImage ?? "info.circle.fill")
+                    .foregroundColor(.blue)
+                    .font(.system(size: 12, weight: .bold))
+                Text(LocalizedStringKey(message))
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary.opacity(0.8))
+            }
+        }
+    }
+
+    private func successToastView(message: String) -> some View {
+        ToastView {
+            HStack(spacing: 8) {
+                Image(systemName: "checkmark.circle.fill")
+                    .foregroundColor(.green)
+                    .font(.system(size: 12, weight: .bold))
+                Text(LocalizedStringKey(message))
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                    .foregroundColor(.primary.opacity(0.8))
+            }
+        }
+    }
+
+    private func warningToastView(message: String) -> some View {
+        ToastView {
+            HStack(spacing: 8) {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundColor(.orange)
+                    .font(.system(size: 12, weight: .bold))
+                Text(LocalizedStringKey(message))
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.primary.opacity(0.8))
             }
@@ -609,19 +659,9 @@ struct ContentView: View {
             Divider().opacity(0.2)
 
             SettingsRow(title: "Invert Menu Bar Clicks", isOn: $manager.invertClicks)
-                .onChange(of: manager.invertClicks) { _ in
-                    withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                        showInvertToast = true
-                    }
-                    
-                    // Auto-hide after 2.5 seconds
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2.5) {
-                        withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
-                            showInvertToast = false
-                        }
-                    }
-                }
-        }
+                .onChange(of: manager.invertClicks) { val in
+                    toastManager.show(.invert(isRightClick: val))
+                }        }
         .padding(14)
         .frame(maxWidth: .infinity)
         .background(Color.primary.opacity(0.05))
