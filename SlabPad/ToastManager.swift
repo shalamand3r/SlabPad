@@ -6,7 +6,6 @@ enum ToastType: Equatable {
     case success(String)
     case error(String)
     case warning(String)
-    case invert(isRightClick: Bool)
     case upToDate
     case reset(progress: Double, countdown: Int, isTriggered: Bool)
     
@@ -16,7 +15,6 @@ enum ToastType: Equatable {
         case .success: return "checkmark.circle.fill"
         case .error: return "xmark.circle.fill"
         case .warning: return "exclamationmark.triangle.fill"
-        case .invert(let isRight): return isRight ? "rectangle.rightthird.inset.filled" : "rectangle.leftthird.inset.filled"
         case .upToDate: return "checkmark.circle.fill"
         case .reset: return nil
         }
@@ -28,7 +26,6 @@ enum ToastType: Equatable {
         case .success: return .green
         case .error: return .red
         case .warning: return .orange
-        case .invert: return .secondary
         case .upToDate: return .green
         case .reset: return .red
         }
