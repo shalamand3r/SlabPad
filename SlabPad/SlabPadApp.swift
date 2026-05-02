@@ -3,6 +3,7 @@
 
 import SwiftUI
 import Combine
+import os
 
 extension Notification.Name {
     static let slabPadPopoverNeedsResize = Notification.Name("slabpad.popoverNeedsResize")
@@ -26,12 +27,22 @@ struct SlabPadApp: App {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let manager = SlabPadManager.shared
+    private let logger = Logger(subsystem: "SlabPad", category: "app")
     private var statusBarItem: NSStatusItem!
     private var popover: NSPopover!
     private var cancellables = Set<AnyCancellable>()
 
     private let popoverWidth: CGFloat = 288
     private let maxPopoverHeight: CGFloat = 500
+
+    private enum MenuBarIcon {
+        static let hapticsOnSymbolName = "rectangle.and.hand.point.up.left.fill"
+        static let hapticsOffSymbolName = "rectangle.and.hand.point.up.left"
+
+        static func symbolName(hapticsEnabled: Bool) -> String {
+            hapticsEnabled ? hapticsOnSymbolName : hapticsOffSymbolName
+        }
+    }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // hide dock icon
@@ -125,7 +136,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     
     private func updateIcon() {
         guard let button = statusBarItem.button else { return }
-        let iconName = SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled)
+        let iconName = MenuBarIcon.symbolName(hapticsEnabled: manager.isHapticsEnabled)
         button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "SlabPad")
     }
     
@@ -209,7 +220,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
         process.arguments = ["-n", url.path]
-        try? process.run()
+        do {
+            try process.run()
+        } catch {
+            logger.error("Failed to relaunch app: \(String(describing: error), privacy: .public)")
+        }
     }
     
     @objc private func handleOpenUpdateRequest(_ notification: Notification) {

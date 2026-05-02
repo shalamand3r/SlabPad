@@ -900,23 +900,23 @@ private struct FloatingPerspectiveModifier: ViewModifier {
     }
 }
 
-		private struct SettingsRow: View {
-		    let title: LocalizedStringKey
-		    @Binding var isOn: Bool
-		    var isDisabled: Bool = false
+private struct SettingsRow: View {
+    let title: LocalizedStringKey
+    @Binding var isOn: Bool
+    var isDisabled: Bool = false
 
-	    var body: some View {
-	        HStack(alignment: .center) {
-	            Text(title).font(.system(size: 13, weight: .semibold))
-	            Spacer(minLength: 12)
-	            Toggle("", isOn: $isOn)
-                    .toggleStyle(.switch)
-                    .labelsHidden()
-	        }
-	        .disabled(isDisabled)
+    var body: some View {
+        HStack(alignment: .center) {
+            Text(title).font(.system(size: 13, weight: .semibold))
+            Spacer(minLength: 12)
+            Toggle("", isOn: $isOn)
+                .toggleStyle(.switch)
+                .labelsHidden()
+        }
+        .disabled(isDisabled)
         .opacity(isDisabled ? 0.6 : 1.0)
-	    }
-	}
+    }
+}
 
 private struct ReleaseNotesMarkdownView: View {
     let markdown: String?
