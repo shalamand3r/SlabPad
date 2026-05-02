@@ -161,8 +161,8 @@ struct PressurePlayground: View {
                                 
                                 let style = StrokeStyle(lineWidth: 0.3 + intensity * 1.7 + swHighlight * 2.0, lineCap: .round, lineJoin: .round)
                                 let alpha = (0.08 + intensity * 0.45) + swHighlight * 0.5
-                                let color = Color.interpolate(.slabPadAccent, Color.slabPadAccent.dynamicVariation, amount: swHighlight)
-                                
+                                let color = Color(nsColor: .controlAccentColor)
+
                                 context.stroke(path, with: .color(color.opacity(alpha)), style: style)
                             }
                             
@@ -313,46 +313,5 @@ class PressureNSView: NSView {
         } else {
             onPressureUpdate?(nil, 0, false)
         }
-    }
-}
-
-private extension Color {
-    static var slabPadAccent: Color {
-        .accentColor
-    }
-
-    var dynamicVariation: Color {
-        if #available(macOS 12.0, *) {
-            let ns = NSColor(self).usingColorSpace(.deviceRGB) ?? .black
-            var h: CGFloat = 0
-            var s: CGFloat = 0
-            var b: CGFloat = 0
-            var a: CGFloat = 0
-            ns.getHue(&h, saturation: &s, brightness: &b, alpha: &a)
-            
-            let isDarkMode = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
-            
-            if isDarkMode {
-                return Color(nsColor: NSColor(hue: h, saturation: max(0, s - 0.2), brightness: min(1, b + 0.25), alpha: a))
-            } else {
-                return Color(nsColor: NSColor(hue: h, saturation: min(1, s + 0.05), brightness: max(0, b - 0.2), alpha: a))
-            }
-        }
-        return .black
-    }
-
-    static func interpolate(_ color1: Color, _ color2: Color, amount: CGFloat) -> Color {
-        if #available(macOS 12.0, *) {
-            let ns1 = NSColor(color1).usingColorSpace(.deviceRGB) ?? .clear
-            let ns2 = NSColor(color2).usingColorSpace(.deviceRGB) ?? .clear
-            
-            let r = ns1.redComponent + (ns2.redComponent - ns1.redComponent) * amount
-            let g = ns1.greenComponent + (ns2.greenComponent - ns1.greenComponent) * amount
-            let b = ns1.blueComponent + (ns2.blueComponent - ns1.blueComponent) * amount
-            let a = ns1.alphaComponent + (ns2.alphaComponent - ns1.alphaComponent) * amount
-            
-            return Color(nsColor: NSColor(red: r, green: g, blue: b, alpha: a))
-        }
-        return color1
     }
 }
