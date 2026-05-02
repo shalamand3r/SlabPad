@@ -161,8 +161,8 @@ struct PressurePlayground: View {
                                 
                                 let style = StrokeStyle(lineWidth: 0.3 + intensity * 1.7 + swHighlight * 2.0, lineCap: .round, lineJoin: .round)
                                 let alpha = (0.08 + intensity * 0.45) + swHighlight * 0.5
-                                let color = Color.interpolate(.slabPadAccent, Color.slabPadAccent.dynamicVariation, amount: swHighlight)
-                                
+                                let color = Color(nsColor: .controlAccentColor)
+
                                 context.stroke(path, with: .color(color.opacity(alpha)), style: style)
                             }
                             
