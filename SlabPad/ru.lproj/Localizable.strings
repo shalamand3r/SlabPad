@@ -31,3 +31,10 @@
 "Haptics managed by Focus" = "Тактильный отклик управляется режимом «Фокусирование»";
 "Disable Haptics" = "Отключить тактильный отклик";
 "Enable Haptics" = "Включить тактильный отклик";
+
+"SlabPad Silence" = "SlabPad Тишина";
+"Silences trackpad haptics when this Focus Mode is active." = "Отключает тактильный отклик трекпада, когда этот режим «Фокусирование» активен.";
+"Silence Haptics" = "Отключить тактильный отклик";
+"Silence trackpad haptics: " = "Отключить тактильный отклик трекпада: ";
+"Haptics disabled" = "Тактильный отклик отключен";
+"Haptics enabled" = "Тактильный отклик включен";

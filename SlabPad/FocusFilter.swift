@@ -12,13 +12,13 @@ struct SlabPadFocusFilter: SetFocusFilterIntent {
     var silenceHaptics: Bool
     
     static var parameterSummary: some ParameterSummary {
-        Summary("Silence trackpad haptics: \(\.$silenceHaptics)")
+        Summary(LocalizedStringResource("Silence trackpad haptics: \(\.$silenceHaptics)"))
     }
 
     var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(
-            title: "SlabPad Silence",
-            subtitle: silenceHaptics ? "Haptics disabled" : "Haptics enabled"
+            title: LocalizedStringResource("SlabPad Silence"),
+            subtitle: silenceHaptics ? LocalizedStringResource("Haptics disabled") : LocalizedStringResource("Haptics enabled")
         )
     }
 

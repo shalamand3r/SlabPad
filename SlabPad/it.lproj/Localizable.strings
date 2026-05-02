@@ -31,3 +31,10 @@
 "Haptics managed by Focus" = "Feedback aptico gestito da Full immersion";
 "Disable Haptics" = "Disabilita feedback aptico";
 "Enable Haptics" = "Abilita feedback aptico";
+
+"SlabPad Silence" = "Silenzio SlabPad";
+"Silences trackpad haptics when this Focus Mode is active." = "Disattiva il feedback aptico del trackpad quando questa Full immersion è attiva.";
+"Silence Haptics" = "Disattiva feedback aptico";
+"Silence trackpad haptics: " = "Disattiva feedback aptico trackpad: ";
+"Haptics disabled" = "Feedback aptico disattivato";
+"Haptics enabled" = "Feedback aptico attivato";

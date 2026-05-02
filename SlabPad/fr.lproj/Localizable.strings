@@ -31,3 +31,10 @@
 "Haptics managed by Focus" = "Haptique gérée par Concentration";
 "Disable Haptics" = "Désactiver le retour haptique";
 "Enable Haptics" = "Activer le retour haptique";
+
+"SlabPad Silence" = "SlabPad Silence";
+"Silences trackpad haptics when this Focus Mode is active." = "Désactive le retour haptique du trackpad lorsque ce mode de Concentration est actif.";
+"Silence Haptics" = "Désactiver le retour haptique";
+"Silence trackpad haptics: " = "Désactiver le retour haptique du trackpad : ";
+"Haptics disabled" = "Retour haptique désactivé";
+"Haptics enabled" = "Retour haptique activé";

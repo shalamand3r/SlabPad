@@ -31,3 +31,10 @@
 "Haptics managed by Focus" = "触覚フィードバックは集中モードで管理";
 "Disable Haptics" = "触覚フィードバックを無効にする";
 "Enable Haptics" = "触覚フィードバックを有効にする";
+
+"SlabPad Silence" = "SlabPad サイレント";
+"Silences trackpad haptics when this Focus Mode is active." = "この集中モードが有効な間、トラックパッドの触覚フィードバックを無効にします。";
+"Silence Haptics" = "触覚フィードバックを無効化";
+"Silence trackpad haptics: " = "トラックパッドの触覚フィードバックを無効化: ";
+"Haptics disabled" = "触覚フィードバック無効";
+"Haptics enabled" = "触覚フィードバック有効";

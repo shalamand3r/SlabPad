@@ -31,3 +31,10 @@
 "Haptics managed by Focus" = "집중 모드에서 관리되는 햅틱";
 "Disable Haptics" = "햅틱 끄기";
 "Enable Haptics" = "햅틱 켜기";
+
+"SlabPad Silence" = "SlabPad 무음";
+"Silences trackpad haptics when this Focus Mode is active." = "이 집중 모드가 활성화되어 있을 때 트랙패드 햅틱을 끕니다.";
+"Silence Haptics" = "햅틱 끄기";
+"Silence trackpad haptics: " = "트랙패드 햅틱 끄기: ";
+"Haptics disabled" = "햅틱 꺼짐";
+"Haptics enabled" = "햅틱 켜짐";

@@ -31,3 +31,10 @@
 "Haptics managed by Focus" = "触感由“专注模式”管理";
 "Disable Haptics" = "停用触感";
 "Enable Haptics" = "启用触感";
+
+"SlabPad Silence" = "SlabPad 静音";
+"Silences trackpad haptics when this Focus Mode is active." = "当此专注模式处于活动状态时，禁用触控板触感反馈。";
+"Silence Haptics" = "停用触感反馈";
+"Silence trackpad haptics: " = "停用触控板触感反馈：";
+"Haptics disabled" = "触感已停用";
+"Haptics enabled" = "触感已启用";

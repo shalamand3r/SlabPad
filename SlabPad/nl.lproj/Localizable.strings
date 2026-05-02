@@ -31,3 +31,10 @@
 "Haptics managed by Focus" = "Haptiek beheerd door Focus";
 "Disable Haptics" = "Schakel haptiek uit";
 "Enable Haptics" = "Schakel haptiek in";
+
+"SlabPad Silence" = "SlabPad Stilte";
+"Silences trackpad haptics when this Focus Mode is active." = "Schakelt trackpad-haptiek uit wanneer deze Focus-modus actief is.";
+"Silence Haptics" = "Haptiek uitschakelen";
+"Silence trackpad haptics: " = "Trackpad-haptiek uitschakelen: ";
+"Haptics disabled" = "Haptiek uitgeschakeld";
+"Haptics enabled" = "Haptiek ingeschakeld";

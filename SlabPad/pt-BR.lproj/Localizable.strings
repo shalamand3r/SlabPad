@@ -31,3 +31,10 @@
 "Haptics managed by Focus" = "Resposta tátil gerenciada pelo Foco";
 "Disable Haptics" = "Desativar resposta tátil";
 "Enable Haptics" = "Ativar resposta tátil";
+
+"SlabPad Silence" = "SlabPad Silêncio";
+"Silences trackpad haptics when this Focus Mode is active." = "Silencia a resposta tátil do trackpad quando este modo de Foco está ativo.";
+"Silence Haptics" = "Silenciar resposta tátil";
+"Silence trackpad haptics: " = "Silenciar resposta tátil do trackpad: ";
+"Haptics disabled" = "Resposta tátil desativada";
+"Haptics enabled" = "Resposta tátil ativada";
