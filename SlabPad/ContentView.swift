@@ -754,31 +754,38 @@ struct ContentView: View {
             }
         }) {
             ZStack {
-                buttonBackground(isEnabled: manager.isHapticsEnabled)
+                buttonBackground(isEnabled: manager.isHapticsEnabled, isFocusActive: manager.isFocusActive)
                     .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
                 
                 HStack {
-                    Image(systemName: "power")
+                    Image(systemName: manager.isFocusActive ? "moon.stars.fill" : "power")
                     let disableHaptics: LocalizedStringKey = "DISABLE HAPTICS"
                     let enableHaptics: LocalizedStringKey = "ENABLE HAPTICS"
-                    Text(manager.isHapticsEnabled ? disableHaptics : enableHaptics)
+                    let focusActive: LocalizedStringKey = "FOCUS ACTIVE"
+                    Text(manager.isFocusActive ? focusActive : (manager.isHapticsEnabled ? disableHaptics : enableHaptics))
                 }
                 .font(.headline)
-                .foregroundColor(.white)
+                .foregroundColor(manager.isFocusActive ? .secondary : .white)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // Hover tilt + glimmer shine (macOS 13+). This used to be on the big haptics button.
+            // 3D & GLIMMER EFFECT ON BIG HAPTICS BUTTON!!!
             .modifier(FloatingPerspectiveModifier())
             .animation(.easeInOut(duration: 0.18), value: manager.isHapticsEnabled)
         }
         .buttonStyle(HapticButtonStyle())
-        .help(Text(manager.isHapticsEnabled ? "Disable Haptics" : "Enable Haptics"))
+        .disabled(manager.isFocusActive)
+        .help(Text(manager.isFocusActive ? "Haptics managed by Focus" : (manager.isHapticsEnabled ? "Disable Haptics" : "Enable Haptics")))
         .padding(.horizontal, 14)
     }
     
     @ViewBuilder
-    private func buttonBackground(isEnabled: Bool) -> some View {
-        if #available(macOS 13.0, *) {
+    private func buttonBackground(isEnabled: Bool, isFocusActive: Bool) -> some View {
+        if isFocusActive {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .strokeBorder(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round, dash: [5, 5]))
+                .foregroundColor(.secondary.opacity(0.4))
+                .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.primary.opacity(0.02)))
+        } else if #available(macOS 13.0, *) {
             RoundedRectangle(cornerRadius: 16, style: .continuous)
                 .fill(isEnabled ? Color.red.gradient : Color.slabPadAccent.gradient)
                 .animation(.easeInOut(duration: 0.18), value: isEnabled)
