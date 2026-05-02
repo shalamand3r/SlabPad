@@ -33,7 +33,7 @@
 
 // FocusFilter.swift (macOS Focus Filter UI)
 "focus_filter_title" = "SlabPad Silence";
-"focus_filter_description" = "Silences trackpad haptics when this Focus Mode is active.";
+"focus_filter_description" = "Disables trackpad haptics when this Focus Mode is active.";
 "focus_filter_param_silence" = "Disable Haptics";
 "focus_filter_subtitle_on" = "Haptics disabled";
 "focus_filter_subtitle_off" = "Haptics enabled";

@@ -32,8 +32,8 @@
 "close_playground" = "Cerrar Playground";
 
 // FocusFilter.swift (macOS Focus Filter UI)
-"focus_filter_title" = "SlabPad Silence";
-"focus_filter_description" = "Silences trackpad haptics when this Focus Mode is active.";
-"focus_filter_param_silence" = "Disable Haptics";
-"focus_filter_subtitle_on" = "Haptics disabled";
-"focus_filter_subtitle_off" = "Haptics enabled";
+"focus_filter_title" = "Silencio de SlabPad";
+"focus_filter_description" = "Desactiva la vibración háptica del trackpad cuando este modo de enfoque está activo.";
+"focus_filter_param_silence" = "Desactivar vibración háptica";
+"focus_filter_subtitle_on" = "Vibración háptica desactivada";
+"focus_filter_subtitle_off" = "Vibración háptica activada";
