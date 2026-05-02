@@ -150,6 +150,7 @@ struct ContentView: View {
                     .fixedSize(horizontal: true, vertical: false)
             }
             .buttonStyle(PopButtonStyle())
+            .help(Text("View Pressure Playground"))
             
             Button(action: {
                 if manager.hasUpdateAvailable {
@@ -202,6 +203,7 @@ struct ContentView: View {
                 .animation(.easeInOut(duration: 0.18), value: manager.isCheckingForUpdates)
             }
             .buttonStyle(PopButtonStyle())
+            .help(Text(manager.hasUpdateAvailable ? "View Release Notes" : "Check for Updates"))
             Spacer(minLength: 8)
             if manager.hasUpdateAvailable, let downloadURL = manager.latestDownloadZipURL {
                 Button {
@@ -262,6 +264,7 @@ struct ContentView: View {
                     .cornerRadius(8)
             }
             .buttonStyle(PopButtonStyle())
+            .help(Text("Settings"))
 
             Button(action: {
                 if resetHoldTriggered { return }
@@ -353,15 +356,14 @@ struct ContentView: View {
                 }
             }
 
-            withAnimation(.linear(duration: 2.0)) {
-                powerHoldProgress = 1
-            }
+            powerHoldProgress = 0
             
             // Continuous progress updates for the toast
-            Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { timer in
+            Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
                 if !isPowerPressActive || resetHoldTriggered {
                     timer.invalidate()
                 } else {
+                    powerHoldProgress += 0.05 / 2.0 // Total 2 seconds
                     updateResetToast()
                 }
             }
@@ -371,14 +373,13 @@ struct ContentView: View {
                 guard isPowerPressActive, !resetHoldTriggered else { return }
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
                     resetCountdownValue = 1
-                    updateResetToast()
                 }
             }
 
             let completeWork = DispatchWorkItem {
                 guard isPowerPressActive, !resetHoldTriggered else { return }
                 resetHoldTriggered = true
-                updateResetToast()
+                toastManager.hideResetToast()
                 NotificationCenter.default.post(name: .slabPadRequestResetAndQuit, object: nil)
             }
 
@@ -399,7 +400,7 @@ struct ContentView: View {
         if powerHoldDidStartProgress && !resetHoldTriggered {
             ignoreNextPowerTap = true
             DispatchQueue.main.async {
-                ignoreNextPowerTap = false
+                self.ignoreNextPowerTap = false
             }
         }
         powerHoldDidStartProgress = false
@@ -483,6 +484,7 @@ struct ContentView: View {
                     .frame(width: 16, height: 16)
             }
             .buttonStyle(PopButtonStyle())
+            .help(Text("Dismiss"))
             .padding(10)
         }
         .background(
@@ -516,8 +518,6 @@ struct ContentView: View {
             upToDateToast
         case .reset(let progress, let countdown, let triggered):
             resetToastView(progress: CGFloat(progress), countdown: countdown, triggered: triggered)
-        case .invert(let isRight):
-            invertToastView(isRight: isRight)
         case .error(let message):
             errorToastView(message: message)
         case .info(let message, let systemImage):
@@ -546,48 +546,27 @@ struct ContentView: View {
         ToastView {
             HStack(spacing: 8) {
                 ZStack {
-                    if triggered {
-                        Image(systemName: "exclamationmark.circle.fill")
-                            .foregroundColor(.red)
-                            .font(.system(size: 14, weight: .bold))
-                    } else {
-                        ZStack {
-                            Circle()
-                                .stroke(Color.red.opacity(0.2), lineWidth: 2)
-                                .frame(width: 20, height: 20)
-                            Circle()
-                                .trim(from: 0, to: 1.0 - progress)
-                                .stroke(Color.red, style: StrokeStyle(lineWidth: 2, lineCap: .round))
-                                .frame(width: 20, height: 20)
-                                .rotationEffect(.degrees(-90))
-                            
-                            Text("\(countdown)")
-                                .font(.system(size: 10, weight: .black, design: .monospaced))
-                                .foregroundColor(.red)
-                        }
-                    }
+                    Circle()
+                        .stroke(Color.red.opacity(0.2), lineWidth: 2)
+                        .frame(width: 20, height: 20)
+                    Circle()
+                        .trim(from: 0, to: 1.0 - progress)
+                        .stroke(Color.red, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                        .frame(width: 20, height: 20)
+                        .rotationEffect(.degrees(-90))
+                    
+                    Text("\(countdown)")
+                        .font(.system(size: 10, weight: .black, design: .monospaced))
+                        .foregroundColor(.red)
                 }
                 
-                Text(triggered ? "Resetting..." : "Keep holding to reset app data...")
+                Text("Keep holding to reset app data...")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.primary.opacity(0.8))
             }
         }
     }
-    
-    private func invertToastView(isRight: Bool) -> some View {
-        ToastView {
-            HStack(spacing: 8) {
-                Image(systemName: isRight ? "rectangle.rightthird.inset.filled" : "rectangle.leftthird.inset.filled")
-                    .foregroundColor(.secondary)
-                    .font(.system(size: 12, weight: .bold))
-                Text(isRight ? "Right Click" : "Left Click")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary.opacity(0.8))
-            }
-        }
-    }
-    
+
     private func errorToastView(message: String) -> some View {
         ToastView {
             HStack(spacing: 8) {
@@ -659,9 +638,7 @@ struct ContentView: View {
             Divider().opacity(0.2)
 
             SettingsRow(title: "Invert Menu Bar Clicks", isOn: $manager.invertClicks)
-                .onChange(of: manager.invertClicks) { val in
-                    toastManager.show(.invert(isRightClick: val))
-                }        }
+        }
         .padding(14)
         .frame(maxWidth: .infinity)
         .background(Color.primary.opacity(0.05))
@@ -699,9 +676,9 @@ struct ContentView: View {
 
     private var releaseNotesSection: some View {
         let latestNotes = normalizeNewlines(manager.latestReleaseNotesMarkdown)
-        let latestChangelog = extractChangelogMarkdown(from: latestNotes) ?? latestNotes
+        let latestWhatsNew = extractWhatsNewMarkdown(from: latestNotes) ?? latestNotes
         
-        let titleLatest: LocalizedStringKey = "Changelog"
+        let titleLatest: LocalizedStringKey = "What's New"
 
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
@@ -741,7 +718,7 @@ struct ContentView: View {
             Divider().opacity(0.2)
 
             ScrollView {
-                ChangelogBulletsView(markdown: latestChangelog)
+                WhatsNewBulletsView(markdown: latestWhatsNew)
                     .padding(.top, 2)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -754,10 +731,10 @@ struct ContentView: View {
         .padding(.horizontal, 14)
     }
 
-    private func extractChangelogMarkdown(from markdown: String?) -> String? {
+    private func extractWhatsNewMarkdown(from markdown: String?) -> String? {
         guard let markdown else { return nil }
         let lines = markdown.components(separatedBy: .newlines)
-        let headerRegex = try? NSRegularExpression(pattern: "^\\s*#{2,6}\\s*changelog\\s*:?(\\s*)$", options: [.caseInsensitive])
+        let headerRegex = try? NSRegularExpression(pattern: "^\\s*#{2,6}\\s*(changelog|what's new|whats new)\\s*:?(\\s*)$", options: [.caseInsensitive])
         guard let headerRegex else { return nil }
 
         var startIndex: Int?
@@ -838,6 +815,7 @@ struct ContentView: View {
             .animation(.easeInOut(duration: 0.18), value: manager.isHapticsEnabled)
         }
         .buttonStyle(HapticButtonStyle())
+        .help(Text(manager.isHapticsEnabled ? "Disable Haptics" : "Enable Haptics"))
         .padding(.horizontal, 14)
     }
     
@@ -1010,7 +988,7 @@ private struct ReleaseNotesMarkdownView: View {
     }
 }
 
-private struct ChangelogBulletsView: View {
+private struct WhatsNewBulletsView: View {
     let markdown: String?
     
     private var bulletLines: [String] {

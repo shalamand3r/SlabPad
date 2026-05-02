@@ -8,17 +8,14 @@
 "Re-enable Haptics on Quit" = "Haptik beim Beenden wieder aktivieren";
 "Invert Menu Bar Clicks" = "Menüleisten-Klicks umkehren";
 "Pressure Playground requires macOS 12.0+" = "Pressure Playground erfordert macOS 12.0+";
-"Changelog" = "Änderungsprotokoll";
+"What's New" = "Was gibt's Neues";
 "Open on GitHub" = "Auf GitHub öffnen";
 "Close" = "Schließen";
 "DISABLE HAPTICS" = "HAPTIK DEAKTIVIEREN";
 "ENABLE HAPTICS" = "HAPTIK AKTIVIEREN";
 "Loading..." = "Wird geladen…";
+"Keep holding to reset app data..." = "Gedrückt halten, um App-Daten zurückzusetzen...";
 
 "You're up to date!" = "Du bist auf dem neuesten Stand!";
-"Keep holding to reset app data..." = "Gedrückt halten, um App-Daten zurückzusetzen...";
-"Resetting..." = "Wird zurückgesetzt...";
-"Left Click" = "Linksklick";
-"Right Click" = "Rechtsklick";
 "Error" = "Fehler";
 "Update check failed" = "Update-Check fehlgeschlagen";

@@ -8,17 +8,14 @@
 "Re-enable Haptics on Quit" = "退出时重新启用触感";
 "Invert Menu Bar Clicks" = "反转菜单栏点击";
 "Pressure Playground requires macOS 12.0+" = "Pressure Playground 需要 macOS 12.0+";
-"Changelog" = "更新日志";
+"What's New" = "更新内容";
 "Open on GitHub" = "在 GitHub 上打开";
 "Close" = "关闭";
 "DISABLE HAPTICS" = "禁用触感";
 "ENABLE HAPTICS" = "启用触感";
 "Loading..." = "加载中...";
+"Keep holding to reset app data..." = "继续按住以重置应用数据...";
 
 "You're up to date!" = "软件已是最新！";
-"Keep holding to reset app data..." = "继续按住以重置应用数据...";
-"Resetting..." = "重置中...";
-"Left Click" = "左键点击";
-"Right Click" = "右键点击";
 "Error" = "错误";
 "Update check failed" = "检查更新失败";

@@ -7,18 +7,15 @@
 "Disable Haptics on Launch" = "起動時に触覚フィードバックを無効化";
 "Re-enable Haptics on Quit" = "終了時に触覚フィードバックを再有効化";
 "Invert Menu Bar Clicks" = "メニューバーのクリックを反転";
-"Pressure Playground requires macOS 12.0+" = "Pressure Playground には macOS 12.0 以降が必要です";
-"Changelog" = "変更履歴";
+"Pressure Playground requires macOS 12.0+" = "Pressure PlaygroundにはmacOS 12.0+が必要です";
+"What's New" = "新機能";
 "Open on GitHub" = "GitHubで開く";
 "Close" = "閉じる";
 "DISABLE HAPTICS" = "触覚を無効化";
 "ENABLE HAPTICS" = "触覚を有効化";
 "Loading..." = "読み込み中…";
+"Keep holding to reset app data..." = "アプリデータをリセットするには押し続けてください...";
 
 "You're up to date!" = "最新の状態です！";
-"Keep holding to reset app data..." = "長押ししてアプリデータをリセット...";
-"Resetting..." = "リセット中...";
-"Left Click" = "左クリック";
-"Right Click" = "右クリック";
 "Error" = "エラー";
 "Update check failed" = "アップデートの確認に失敗しました";

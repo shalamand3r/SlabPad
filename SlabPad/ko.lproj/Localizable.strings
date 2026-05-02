@@ -7,18 +7,15 @@
 "Disable Haptics on Launch" = "실행 시 햅틱 비활성화";
 "Re-enable Haptics on Quit" = "종료 시 햅틱 다시 활성화";
 "Invert Menu Bar Clicks" = "메뉴 막대 클릭 반전";
-"Pressure Playground requires macOS 12.0+" = "Pressure Playground는 macOS 12.0 이상이 필요합니다";
-"Changelog" = "변경 내용";
+"Pressure Playground requires macOS 12.0+" = "Pressure Playground를 사용하려면 macOS 12.0+가 필요합니다";
+"What's New" = "새로운 기능";
 "Open on GitHub" = "GitHub에서 열기";
 "Close" = "닫기";
 "DISABLE HAPTICS" = "햅틱 비활성화";
 "ENABLE HAPTICS" = "햅틱 활성화";
 "Loading..." = "로딩 중...";
+"Keep holding to reset app data..." = "앱 데이터를 초기화하려면 계속 누르고 계세요...";
 
 "You're up to date!" = "최신 버전입니다!";
-"Keep holding to reset app data..." = "길게 눌러 앱 데이터 초기화...";
-"Resetting..." = "초기화 중...";
-"Left Click" = "왼쪽 클릭";
-"Right Click" = "오른쪽 클릭";
 "Error" = "오류";
 "Update check failed" = "업데이트 확인 실패";
