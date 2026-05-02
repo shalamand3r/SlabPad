@@ -8,8 +8,7 @@
 "Re-enable Haptics on Quit" = "종료 시 햅틱 다시 활성화";
 "Invert Menu Bar Clicks" = "메뉴 막대 클릭 반전";
 "Pressure Playground requires macOS 12.0+" = "Pressure Playground는 macOS 12.0 이상이 필요합니다";
-"Release Notes" = "릴리스 노트";
-"Changelog" = "변경 로그";
+"Changelog" = "변경 내용";
 "Open on GitHub" = "GitHub에서 열기";
 "Close" = "닫기";
 "DISABLE HAPTICS" = "햅틱 비활성화";
