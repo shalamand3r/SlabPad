@@ -18,7 +18,7 @@
 "enable_haptics_button" = "启用触感反馈";
 "loading" = "正在加载...";
 "keep_holding_to_reset_app_data" = "长按以重置应用数据...";
-"up_to_date" = "已是最新版本！";
+"up_to_date" = "SlabPad 已是最新版本！";
 "error" = "错误";
 "update_check_failed" = "更新检查失败";
 "view_pressure_playground" = "查看 Pressure Playground";

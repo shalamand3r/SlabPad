@@ -18,7 +18,7 @@
 "enable_haptics_button" = "触覚フィードバックを有効化";
 "loading" = "読み込み中...";
 "keep_holding_to_reset_app_data" = "長押しでアプリデータをリセット...";
-"up_to_date" = "最新の状態です！";
+"up_to_date" = "SlabPadは最新の状態です！";
 "error" = "エラー";
 "update_check_failed" = "アップデートの確認に失敗しました";
 "view_pressure_playground" = "Pressure Playgroundを表示";

@@ -18,7 +18,7 @@
 "enable_haptics_button" = "ВКЛЮЧИТЬ ТАКТИЛЬНЫЙ ОТКЛИК";
 "loading" = "Загрузка...";
 "keep_holding_to_reset_app_data" = "Удерживайте, чтобы сбросить данные приложения...";
-"up_to_date" = "У вас последняя версия!";
+"up_to_date" = "SlabPad обновлен до последней версии!";
 "error" = "Ошибка";
 "update_check_failed" = "Ошибка проверки обновлений";
 "view_pressure_playground" = "Открыть Pressure Playground";

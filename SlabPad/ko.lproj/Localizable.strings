@@ -18,7 +18,7 @@
 "enable_haptics_button" = "햅틱 활성화";
 "loading" = "불러오는 중...";
 "keep_holding_to_reset_app_data" = "길게 눌러 앱 데이터 초기화...";
-"up_to_date" = "최신 상태입니다!";
+"up_to_date" = "SlabPad는 최신 상태입니다!";
 "error" = "오류";
 "update_check_failed" = "업데이트 확인 실패";
 "view_pressure_playground" = "Pressure Playground 보기";

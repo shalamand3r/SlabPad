@@ -18,7 +18,7 @@
 "enable_haptics_button" = "ACTIVER RETOUR HAPTIQUE";
 "loading" = "Chargement...";
 "keep_holding_to_reset_app_data" = "Maintenez pour réinitialiser les données de l'app...";
-"up_to_date" = "Votre version est à jour !";
+"up_to_date" = "SlabPad est à jour !";
 "error" = "Erreur";
 "update_check_failed" = "Échec de la recherche de mise à jour";
 "view_pressure_playground" = "Voir Pressure Playground";
