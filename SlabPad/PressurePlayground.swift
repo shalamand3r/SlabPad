@@ -1,3 +1,6 @@
+// PressurePlayground.swift
+// cool way to interact w/ force touch trackpad
+
 import SwiftUI
 import AppKit
 

@@ -1,3 +1,6 @@
+// ToastManager.swift
+// manages in-app toasts
+
 import SwiftUI
 import Combine
 
