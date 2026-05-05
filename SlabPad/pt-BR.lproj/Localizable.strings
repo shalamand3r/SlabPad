@@ -1,24 +1,39 @@
-"Launch at Login" = "Abrir no Login";
-"Launch at Login (macOS 13+)" = "Abrir no Login (macOS 13+)";
-"Click to download the latest version!" = "Clique para baixar a versão mais recente!";
-"Left-click the menu bar icon to instantly toggle haptics" = "Clique esquerdo para alternar o tato";
-"Right-click the menu bar icon to instantly toggle haptics" = "Clique direito para alternar o tato";
-"Quit" = "Encerrar";
-"Disable Haptics on Launch" = "Desativar tato ao iniciar";
-"Re-enable Haptics on Quit" = "Reativar tato ao encerrar";
-"Invert Menu Bar Clicks" = "Inverter cliques da barra de menus";
-"Pressure Playground requires macOS 12.0+" = "Pressure Playground requer macOS 12.0+";
-"What's New" = "Novidades";
-"Open on GitHub" = "Abrir no GitHub";
-"Close" = "Fechar";
-"DISABLE HAPTICS" = "DESATIVAR TATO";
-"ENABLE HAPTICS" = "ATIVAR TATO";
-"Loading..." = "Carregando...";
-"Keep holding to reset app data..." = "Mantenha pressionado para redefinir os dados do aplicativo...";
-"You're up to date!" = "Você está atualizado!";
-"Error" = "Erro";
-"Update check failed" = "Falha ao verificar atualizações";
-"View Pressure Playground" = "Ver Pressure Playground";
-"Settings" = "Ajustes";
-"Dismiss" = "Ignorar";
-"Close Playground" = "Fechar Playground";
+// Settings
+"launch_at_login" = "Iniciar ao fazer login";
+"launch_at_login_macos13" = "Iniciar ao fazer login (macOS 13+)";
+"disable_haptics_on_launch" = "Desativar resposta tátil ao iniciar";
+"re_enable_haptics_on_quit" = "Reativar resposta tátil ao encerrar";
+"invert_menu_bar_clicks" = "Inverter cliques da barra de menus";
+"settings" = "Configurações";
+
+// ContentView.swift
+"click_to_download_latest_version" = "Clique para baixar a versão mais recente!";
+"hint_left_click_menu_bar" = "Clique com o botão esquerdo no ícone da barra de menus para alternar a resposta tátil";
+"hint_right_click_menu_bar" = "Clique com o botão direito no ícone da barra de menus para alternar a resposta tátil";
+"quit" = "Encerrar";
+"whats_new" = "Novidades";
+"open_on_github" = "Abrir no GitHub";
+"close" = "Fechar";
+"disable_haptics_button" = "DESATIVAR RESPOSTA TÁTIL";
+"enable_haptics_button" = "ATIVAR RESPOSTA TÁTIL";
+"loading" = "Carregando...";
+"keep_holding_to_reset_app_data" = "Mantenha pressionado para redefinir dados do app...";
+"up_to_date" = "O SlabPad está na versão mais recente!";
+"error" = "Erro";
+"update_check_failed" = "Falha na verificação de atualização";
+"view_pressure_playground" = "Visualizar Pressure Playground";
+"dismiss" = "Dispensar";
+"focus_active" = "FOCO ATIVO";
+"view_release_notes" = "Ver notas da versão";
+"check_for_updates" = "Verificar atualizações";
+
+// PressurePlayground.swift
+"pressure_playground_requires_macos_12" = "O Pressure Playground requer macOS 12.0+";
+"close_playground" = "Fechar Playground";
+
+// FocusFilter.swift (macOS Focus Filter UI)
+"focus_filter_title" = "SlabPad Silêncio";
+"focus_filter_description" = "Desativa os ajustes táteis do trackpad quando este Modo de Foco estiver ativo.";
+"focus_filter_param_silence" = "Desativar Ajustes Táteis";
+"focus_filter_subtitle_on" = "Ajustes táteis desativados";
+"focus_filter_subtitle_off" = "Ajustes táteis ativados";

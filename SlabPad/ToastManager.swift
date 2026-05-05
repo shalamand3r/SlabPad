@@ -1,11 +1,13 @@
+// ToastManager.swift
+// manages in-app toasts
+
 import SwiftUI
 import Combine
 
 enum ToastType: Equatable {
-    case info(String, systemImage: String? = nil)
-    case success(String)
-    case error(String)
-    case warning(String)
+    case info(LocalizedStringKey, systemImage: String? = nil)
+    case success(LocalizedStringKey)
+    case error(LocalizedStringKey)
     case upToDate
     case reset(progress: Double, countdown: Int)
 }

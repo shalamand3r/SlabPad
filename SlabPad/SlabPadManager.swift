@@ -51,7 +51,6 @@ final class SlabPadManager: ObservableObject {
     static let shared = SlabPadManager()
 
     private let logger = Logger(subsystem: "SlabPad", category: "manager")
-    private var focusReconcileTask: Task<Void, Never>?
     
     // main "on/off" state
     @Published var isHapticsEnabled: Bool = true {
@@ -150,11 +149,11 @@ final class SlabPadManager: ObservableObject {
         
         if #available(macOS 13.0, *) {
             Task {
-                if let currentFilter = try? await SlabPadFocusFilter.current {
-                    self.isFocusActive = currentFilter.silenceHaptics
+                let shouldSilence = (try? await SlabPadFocusFilter.current.silenceHaptics) ?? false
+                await MainActor.run {
+                    self.isFocusActive = shouldSilence
                 }
             }
-            startFocusReconcileLoop()
         }
     }
     
@@ -285,29 +284,5 @@ final class SlabPadManager: ObservableObject {
     func applyHapticsStateToSystem() {
         let targetState = isFocusActive ? false : isHapticsEnabled
         HapticsManager.shared.setHaptics(to: targetState)
-    }
-
-    @available(macOS 13.0, *)
-    private func startFocusReconcileLoop() {
-        focusReconcileTask?.cancel()
-        focusReconcileTask = Task.detached(priority: .background) { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                guard let self else { continue }
-
-                let shouldSilence: Bool
-                if let current = try? await SlabPadFocusFilter.current {
-                    shouldSilence = current.silenceHaptics
-                } else {
-                    shouldSilence = false
-                }
-
-                await MainActor.run {
-                    if self.isFocusActive != shouldSilence {
-                        self.isFocusActive = shouldSilence
-                    }
-                }
-            }
-        }
     }
 }

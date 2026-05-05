@@ -5,20 +5,20 @@ import AppIntents
 
 @available(macOS 13.0, *)
 struct SlabPadFocusFilter: SetFocusFilterIntent {
-    static var title: LocalizedStringResource = "SlabPad Silence"
-    static var description: LocalizedStringResource = "Silences trackpad haptics when this Focus Mode is active."
+    static var title: LocalizedStringResource = "focus_filter_title"
+    static var description: LocalizedStringResource = "focus_filter_description"
     
-    @Parameter(title: "Silence Haptics", default: false)
+    @Parameter(title: "focus_filter_param_silence", default: false)
     var silenceHaptics: Bool
     
     static var parameterSummary: some ParameterSummary {
-        Summary("Silence trackpad haptics: \(\.$silenceHaptics)")
+        Summary("focus_filter_param_silence: \(\.$silenceHaptics)")
     }
 
     var displayRepresentation: DisplayRepresentation {
         DisplayRepresentation(
-            title: "SlabPad Silence",
-            subtitle: silenceHaptics ? "Haptics disabled" : "Haptics enabled"
+            title: "focus_filter_title",
+            subtitle: silenceHaptics ? "focus_filter_subtitle_on" : "focus_filter_subtitle_off"
         )
     }
 
