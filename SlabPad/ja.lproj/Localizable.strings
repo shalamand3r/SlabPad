@@ -1,0 +1,48 @@
+// Settings
+"launch_at_login" = "ログイン時に起動";
+"launch_at_login_macos13" = "ログイン時に起動 (macOS 13+)";
+"disable_haptics_on_launch" = "起動時に触覚フィードバックを無効化";
+"re_enable_haptics_on_quit" = "終了時に触覚フィードバックを再有効化";
+"invert_menu_bar_clicks" = "メニューバークリックを反転";
+"settings" = "設定";
+
+// ContentView.swift
+"click_to_download_latest_version" = "クリックして最新バージョンを ダウンロード！";
+"hint_left_click_menu_bar" = "メニューバーアイコンを左クリックして触覚フィードバックを素早く切り替えます";
+"hint_right_click_menu_bar" = "メニュー バーアイコンを右クリックして触覚フィードバックを素早く切り替えます";
+"quit" = "終了";
+"whats_new" = "新機能";
+"open_on_github" = "GitHubで開く";
+"close" = "閉じる";
+"disable_haptics_button" = "触覚フィードバックを無効化";
+"enable_haptics_button" = "触覚フィードバックを有効化";
+"loading" = "読み込み中...";
+"keep_holding_to_reset_app_data" = "長押しでアプリデータをリセット...";
+"up_to_date" = "SlabPadは最新の状態です！";
+"error" = "エラー";
+"update_check_failed" = "アップデートの確認に失敗しました";
+"view_pressure_playground" = "Pressure Playgroundを表示";
+"dismiss" = "閉じる";
+"focus_active" = "フォーカス有効";
+"view_release_notes" = "リリースノートを表示";
+"check_for_updates" = "アップデートを確認";
+"focus_controls_haptics_title" = "フォーカスが触覚を制御中";
+"focus_controls_haptics_message" = "このフォーカスモードがトラックパッドの触覚をオフにしています。";
+"haptics_unavailable_title" = "トラックパッドの触覚を利用できません";
+"haptics_framework_unavailable" = "このMacではMultitouchSupportを利用できません。";
+"haptics_private_api_unavailable" = "トラックパッド触覚APIを読み込めませんでした。";
+"haptics_trackpad_unavailable" = "内蔵Force Touchトラックパッドが見つかりませんでした。";
+"haptics_actuator_unavailable" = "このトラックパッドは触覚アクチュエータを公開していません。";
+"haptics_set_failed" = "macOSが要求された触覚状態を保持しませんでした。";
+"haptics_state_read_failed" = "SlabPadは触覚状態を確認できませんでした。";
+
+// PressurePlayground.swift
+"pressure_playground_requires_macos_12" = "Pressure PlaygroundにはmacOS 12.0以降が必要です";
+"close_playground" = "Playgroundを閉じる";
+
+// FocusFilter.swift (macOS Focus Filter UI)
+"focus_filter_title" = "SlabPad サイレンス";
+"focus_filter_description" = "この集中モードが有効なときにトラックパッドの触覚フィードバックを無効にします。";
+"focus_filter_param_silence" = "触覚を無効にする";
+"focus_filter_subtitle_on" = "触覚が無効です";
+"focus_filter_subtitle_off" = "触覚が有効です";

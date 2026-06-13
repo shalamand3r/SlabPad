@@ -1,0 +1,48 @@
+// Settings
+"launch_at_login" = "로그인 시 시작";
+"launch_at_login_macos13" = "로그인 시 시작 (macOS 13+)";
+"disable_haptics_on_launch" = "시작 시 햅틱 비활성화";
+"re_enable_haptics_on_quit" = "종료 시 햅틱 재활성화";
+"invert_menu_bar_clicks" = "메뉴 막대 클릭 반전";
+"settings" = "설정";
+
+// ContentView.swift
+"click_to_download_latest_version" = "클릭하여 최신 버전을 다운로드하세요!";
+"hint_left_click_menu_bar" = "메뉴 막대 아이콘을 왼쪽 클릭하여 햅틱을 즉시 전환합니다";
+"hint_right_click_menu_bar" = "메뉴 막대 아이콘을 오른쪽 클릭하여 햅틱을 즉시 전환합니다";
+"quit" = "종료";
+"whats_new" = "새로운 기능";
+"open_on_github" = "GitHub에서 열기";
+"close" = "닫기";
+"disable_haptics_button" = "햅틱 비활성화";
+"enable_haptics_button" = "햅틱 활성화";
+"loading" = "불러오는 중...";
+"keep_holding_to_reset_app_data" = "길게 눌러 앱 데이터 초기화...";
+"up_to_date" = "SlabPad는 최신 상태입니다!";
+"error" = "오류";
+"update_check_failed" = "업데이트 확인 실패";
+"view_pressure_playground" = "Pressure Playground 보기";
+"dismiss" = "닫기";
+"focus_active" = "포커스 활성";
+"view_release_notes" = "릴리스 노트 보기";
+"check_for_updates" = "업데이트 확인";
+"focus_controls_haptics_title" = "포커스가 햅틱을 제어 중";
+"focus_controls_haptics_message" = "이 포커스 모드가 트랙패드 햅틱을 조용히 유지합니다.";
+"haptics_unavailable_title" = "트랙패드 햅틱을 사용할 수 없음";
+"haptics_framework_unavailable" = "이 Mac에서 MultitouchSupport를 사용할 수 없습니다.";
+"haptics_private_api_unavailable" = "트랙패드 햅틱 API를 불러올 수 없습니다.";
+"haptics_trackpad_unavailable" = "내장 Force Touch 트랙패드를 찾을 수 없습니다.";
+"haptics_actuator_unavailable" = "이 트랙패드는 햅틱 액추에이터를 제공하지 않습니다.";
+"haptics_set_failed" = "macOS가 요청한 햅틱 상태를 유지하지 않았습니다.";
+"haptics_state_read_failed" = "SlabPad가 햅틱 상태를 확인할 수 없습니다.";
+
+// PressurePlayground.swift
+"pressure_playground_requires_macos_12" = "Pressure Playground는 macOS 12.0 이상이 필요합니다";
+"close_playground" = "Playground 닫기";
+
+// FocusFilter.swift (macOS Focus Filter UI)
+"focus_filter_title" = "SlabPad 무음";
+"focus_filter_description" = "이 집중 모드가 활성화되어 있을 때 트랙패드 햅틱을 비활성화합니다.";
+"focus_filter_param_silence" = "햅틱 비활성화";
+"focus_filter_subtitle_on" = "햅틱 비활성화됨";
+"focus_filter_subtitle_off" = "햅틱 활성화됨";

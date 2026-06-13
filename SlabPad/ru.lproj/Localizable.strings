@@ -1,0 +1,48 @@
+// Settings
+"launch_at_login" = "Запускать при входе";
+"launch_at_login_macos13" = "Запускать при входе (macOS 13+)";
+"disable_haptics_on_launch" = "Отключить тактильный отклик при запуске";
+"re_enable_haptics_on_quit" = "Включить тактильный отклик при выходе";
+"invert_menu_bar_clicks" = "Инвертировать клики в строке меню";
+"settings" = "Настройки";
+
+// ContentView.swift
+"click_to_download_latest_version" = "Нажмите, чтобы скачать последнюю версию!";
+"hint_left_click_menu_bar" = "Нажмите левой кнопкой мыши на значок в строке меню, чтобы переключить тактильный отклик";
+"hint_right_click_menu_bar" = "Нажмите правой кнопкой мыши на значок в строке меню, чтобы переключить тактильный отклик";
+"quit" = "Выйти";
+"whats_new" = "Что нового";
+"open_on_github" = "Открыть на GitHub";
+"close" = "Закрыть";
+"disable_haptics_button" = "ОТКЛЮЧИТЬ ТАКТИЛЬНЫЙ ОТКЛИК";
+"enable_haptics_button" = "ВКЛЮЧИТЬ ТАКТИЛЬНЫЙ ОТКЛИК";
+"loading" = "Загрузка...";
+"keep_holding_to_reset_app_data" = "Удерживайте, чтобы сбросить данные приложения...";
+"up_to_date" = "SlabPad обновлен до последней версии!";
+"error" = "Ошибка";
+"update_check_failed" = "Ошибка проверки обновлений";
+"view_pressure_playground" = "Открыть Pressure Playground";
+"dismiss" = "Отклонить";
+"focus_active" = "ФОКУС АКТИВЕН";
+"view_release_notes" = "Показать примечания к выпуску";
+"check_for_updates" = "Проверить обновления";
+"focus_controls_haptics_title" = "Фокус управляет откликом";
+"focus_controls_haptics_message" = "Этот режим Фокус удерживает тактильный отклик трекпада выключенным.";
+"haptics_unavailable_title" = "Тактильный отклик трекпада недоступен";
+"haptics_framework_unavailable" = "MultitouchSupport недоступен на этом Mac.";
+"haptics_private_api_unavailable" = "Не удалось загрузить API тактильного отклика трекпада.";
+"haptics_trackpad_unavailable" = "Встроенный трекпад Force Touch не найден.";
+"haptics_actuator_unavailable" = "Этот трекпад не предоставляет тактильный актуатор.";
+"haptics_set_failed" = "macOS не сохранила запрошенное состояние отклика.";
+"haptics_state_read_failed" = "SlabPad не смог проверить состояние отклика.";
+
+// PressurePlayground.swift
+"pressure_playground_requires_macos_12" = "Для Pressure Playground требуется macOS 12.0+";
+"close_playground" = "Закрыть Playground";
+
+// FocusFilter.swift (macOS Focus Filter UI)
+"focus_filter_title" = "SlabPad: Без звука";
+"focus_filter_description" = "Отключает тактильный отклик трекпада, когда активен этот режим фокусирования.";
+"focus_filter_param_silence" = "Отключить тактильный отклик";
+"focus_filter_subtitle_on" = "Тактильный отклик отключен";
+"focus_filter_subtitle_off" = "Тактильный отклик включен";

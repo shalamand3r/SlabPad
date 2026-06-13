@@ -1,0 +1,48 @@
+// Settings
+"launch_at_login" = "Lancer à l'ouverture de session";
+"launch_at_login_macos13" = "Lancer à l'ouverture de session (macOS 13+)";
+"disable_haptics_on_launch" = "Désactiver le retour haptique au lancement";
+"re_enable_haptics_on_quit" = "Réactiver le retour haptique à la fermeture";
+"invert_menu_bar_clicks" = "Inverser les clics dans la barre des menus";
+"settings" = "Réglages";
+
+// ContentView.swift
+"click_to_download_latest_version" = "Cliquez pour télécharger la dernière version !";
+"hint_left_click_menu_bar" = "Cliquez à gauche sur l'icône de la barre des menus pour activer/désactiver le retour haptique";
+"hint_right_click_menu_bar" = "Cliquez à droite sur l'icône de la barre des menus pour activer/désactiver le retour haptique";
+"quit" = "Quitter";
+"whats_new" = "Nouveautés";
+"open_on_github" = "Ouvrir sur GitHub";
+"close" = "Fermer";
+"disable_haptics_button" = "DÉSACTIVER RETOUR HAPTIQUE";
+"enable_haptics_button" = "ACTIVER RETOUR HAPTIQUE";
+"loading" = "Chargement...";
+"keep_holding_to_reset_app_data" = "Maintenez pour réinitialiser les données de l'app...";
+"up_to_date" = "SlabPad est à jour !";
+"error" = "Erreur";
+"update_check_failed" = "Échec de la recherche de mise à jour";
+"view_pressure_playground" = "Voir Pressure Playground";
+"dismiss" = "Ignorer";
+"focus_active" = "FOCUS ACTIF";
+"view_release_notes" = "Voir les notes de version";
+"check_for_updates" = "Vérifier les mises à jour";
+"focus_controls_haptics_title" = "Concentration contrôle l’haptique";
+"focus_controls_haptics_message" = "Ce mode Concentration garde l’haptique du trackpad silencieuse.";
+"haptics_unavailable_title" = "Haptique du trackpad indisponible";
+"haptics_framework_unavailable" = "MultitouchSupport n’est pas disponible sur ce Mac.";
+"haptics_private_api_unavailable" = "Impossible de charger l’API haptique du trackpad.";
+"haptics_trackpad_unavailable" = "Aucun trackpad Force Touch intégré n’a été trouvé.";
+"haptics_actuator_unavailable" = "Ce trackpad n’expose pas d’actionneur haptique.";
+"haptics_set_failed" = "macOS n’a pas conservé l’état haptique demandé.";
+"haptics_state_read_failed" = "SlabPad n’a pas pu vérifier l’état haptique.";
+
+// PressurePlayground.swift
+"pressure_playground_requires_macos_12" = "Pressure Playground nécessite macOS 12.0+";
+"close_playground" = "Fermer le Playground";
+
+// FocusFilter.swift (macOS Focus Filter UI)
+"focus_filter_title" = "Silence SlabPad";
+"focus_filter_description" = "Désactive le retour haptique du trackpad lorsque ce mode de concentration est actif.";
+"focus_filter_param_silence" = "Désactiver le retour haptique";
+"focus_filter_subtitle_on" = "Retour haptique désactivé";
+"focus_filter_subtitle_off" = "Retour haptique activé";
