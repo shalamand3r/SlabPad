@@ -3,6 +3,14 @@
 
 import SwiftUI
 import Combine
+import os
+
+extension Notification.Name {
+    static let slabPadPopoverNeedsResize = Notification.Name("slabpad.popoverNeedsResize")
+    static let slabPadRequestQuit = Notification.Name("slabpad.requestQuit")
+    static let slabPadRequestResetAndQuit = Notification.Name("slabpad.resetAndQuit")
+    static let slabPadRequestOpenUpdate = Notification.Name("slabpad.openUpdate")
+}
 
 @main
 struct SlabPadApp: App {
@@ -19,16 +27,29 @@ struct SlabPadApp: App {
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let manager = SlabPadManager.shared
+    private let logger = Logger(subsystem: "SlabPad", category: "app")
     private var statusBarItem: NSStatusItem!
     private var popover: NSPopover!
     private var cancellables = Set<AnyCancellable>()
+
+    private let popoverWidth: CGFloat = 288
+    private let maxPopoverHeight: CGFloat = 500
+
+    private enum MenuBarIcon {
+        static let hapticsOnSymbolName = "rectangle.and.hand.point.up.left.fill"
+        static let hapticsOffSymbolName = "rectangle.and.hand.point.up.left"
+
+        static func symbolName(hapticsEnabled: Bool) -> String {
+            hapticsEnabled ? hapticsOnSymbolName : hapticsOffSymbolName
+        }
+    }
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         // hide dock icon
         NSApp.setActivationPolicy(.accessory)
         
         popover = NSPopover()
-        popover.contentSize = NSSize(width: 300, height: 340)
+        popover.contentSize = NSSize(width: popoverWidth, height: 10)
         popover.behavior = .transient
         // bridge swiftui to appkit popover
         popover.contentViewController = NSHostingController(rootView: ContentView())
@@ -50,10 +71,45 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
 
+        manager.$isFocusActive
+            .receive(on: RunLoop.main)
+            .sink { [weak self] _ in
+                self?.updateIcon()
+            }
+            .store(in: &cancellables)
+
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
             selector: #selector(handleWake),
             name: NSWorkspace.didWakeNotification,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handlePopoverNeedsResize),
+            name: .slabPadPopoverNeedsResize,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleQuitRequest),
+            name: .slabPadRequestQuit,
+            object: nil
+        )
+        
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleResetAndQuitRequest),
+            name: .slabPadRequestResetAndQuit,
+            object: nil
+        )
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleOpenUpdateRequest(_:)),
+            name: .slabPadRequestOpenUpdate,
             object: nil
         )
         
@@ -87,7 +143,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     
     private func updateIcon() {
         guard let button = statusBarItem.button else { return }
-        let iconName = SlabPadIcons.menuBarSymbolName(hapticsEnabled: manager.isHapticsEnabled)
+        let effectiveHapticsEnabled = manager.isFocusActive ? false : manager.isHapticsEnabled
+        let iconName = MenuBarIcon.symbolName(hapticsEnabled: effectiveHapticsEnabled)
         button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "SlabPad")
     }
     
@@ -100,9 +157,92 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
+        adjustPopoverSize()
+
         // anchor popover to menubar icon
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         popover.contentViewController?.view.window?.makeKey()
+    }
+
+    @objc private func handlePopoverNeedsResize() {
+        guard popover.isShown else { return }
+        
+        DispatchQueue.main.async {
+            self.adjustPopoverSize()
+        }
+    }
+
+    private func adjustPopoverSize() {
+        guard let view = popover.contentViewController?.view else { return }
+        view.layoutSubtreeIfNeeded()
+
+        var size = view.fittingSize
+        size.width = popoverWidth
+        size.height = max(10, min(maxPopoverHeight, size.height))
+        popover.contentSize = size
+    }
+
+    @objc private func handleQuitRequest() {
+        let showPressedStateDelay: TimeInterval = 0.20
+        DispatchQueue.main.asyncAfter(deadline: .now() + showPressedStateDelay) { [weak self] in
+            self?.closePopoverAndQuit(relaunch: false)
+        }
+    }
+    
+    @objc private func handleResetAndQuitRequest() {
+        resetAppDefaultsForTesting()
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            self?.closePopoverAndQuit(relaunch: true)
+        }
+    }
+    
+    private func resetAppDefaultsForTesting() {
+        let defaults = UserDefaults.standard
+
+        // keep language/locale behavior intact; only reset our own app prefs
+        let keysToReset: [String] = [
+            "disableOnLaunch",
+            "reEnableOnQuit",
+            "invertClicks",
+            "hasLaunchedBefore",
+            "showBottomHint",
+        ]
+
+        keysToReset.forEach(defaults.removeObject(forKey:))
+    }
+    
+    private func closePopoverAndQuit(relaunch: Bool) {
+        let quitAfterCloseDelay: TimeInterval = 0.08
+        popover.performClose(nil)
+        DispatchQueue.main.asyncAfter(deadline: .now() + quitAfterCloseDelay) { [weak self] in
+            if relaunch {
+                self?.relaunchApp()
+            }
+            NSApplication.shared.terminate(nil)
+        }
+    }
+    
+    private func relaunchApp() {
+        let url = Bundle.main.bundleURL
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/open")
+        process.arguments = ["-n", url.path]
+        do {
+            try process.run()
+        } catch {
+            logger.error("Failed to relaunch app: \(String(describing: error), privacy: .public)")
+        }
+    }
+    
+    @objc private func handleOpenUpdateRequest(_ notification: Notification) {
+        guard let url = notification.object as? URL else { return }
+
+        let showPressedStateDelay: TimeInterval = 0.20
+        DispatchQueue.main.asyncAfter(deadline: .now() + showPressedStateDelay) { [weak self] in
+            NSWorkspace.shared.open(url)
+            self?.popover.performClose(nil)
+        }
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -1,7 +1,7 @@
 # SlabPad 🔕
-### A menu bar app for toggling macOS trackpad haptics
+### Bring back macOS silent clicking
 
-Disable the haptic "click" produced by Apple's Force Touch trackpads found in most modern MacBooks (excluding the MacBook Neo). The purpose of this app is to mimic the **silent clicking option** from earlier MacBook models that no longer exists. In short, you'll be able to apply pressure on the trackpad and "click" without the trackpad providing any haptic feedback (it's as if you were pressing on a solid piece of glass).
+SlabPad disables the haptic "click" produced by Apple's Force Touch trackpads found in most modern MacBooks (excluding the MacBook Neo). The purpose of this app is to mimic the **silent clicking option** from earlier MacBook models that no longer exists. In short, you'll be able to apply pressure on the trackpad and "click" without the trackpad providing any haptic feedback (it's as if you were pressing on a solid piece of glass).
 
 ---
 
@@ -31,4 +31,12 @@ Download the latest version from **[Releases](https://github.com/shalamand3r/Sla
 
 ---
 
-###### Note: This does not appear to work on external Magic Trackpads :(
+###### Note: Haptics will reset if your Mac goes to sleep. SlabPad will automatically re-disable haptics when your Mac wakes up (if you had previously disabled haptics before your Mac had gone to sleep), but only if SlabPad remains open. Also, SlabPad does not appear to work on external Magic Trackpads :(
+
+---
+
+<p align="center">
+  <a href="https://github.com/shalamand3r/SlabPad/releases">
+    <img src="https://img.shields.io/github/downloads/shalamand3r/SlabPad/total?style=plastic&logo=github&label=Downloads&color=4053e2">
+  </a>
+</p>
