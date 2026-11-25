@@ -64,8 +64,8 @@ struct ContentView: View {
         .padding(.bottom, 14)
         .overlay(
             VStack(spacing: 8) {
-                ForEach(toastManager.toasts) { toast in
-                    renderToast(toast)
+                ForEach(toastManager.updateErrorIDs, id: \.self) { _ in
+                    updateErrorToast
                 }
                 if powerHoldDidStartProgress {
                     resetToastView(progress: powerHoldProgress, countdown: resetCountdownValue)
@@ -134,15 +134,8 @@ struct ContentView: View {
                     withAnimation(spring) {
                         activePanel = activePanel == .releaseNotes ? .mainButton : .releaseNotes
                     }
-                } else if !manager.isCheckingForUpdates {
-                    manager.checkForUpdate { result in
-                        switch result {
-                        case .success:
-                            break
-                        case .failure:
-                            toastManager.show(.error(LocalizedStringKey("update_check_failed")))
-                        }
-                    }
+                } else {
+                    manager.checkForUpdate(onFailure: toastManager.showUpdateError)
                 }
             }) {
                 versionPill
@@ -380,16 +373,6 @@ struct ContentView: View {
         .padding(.top, 8)
     }
 
-    @ViewBuilder
-    private func renderToast(_ toast: Toast) -> some View {
-        switch toast.type {
-        case .error(let message):
-            messageToast(message, symbol: "xmark.circle.fill", color: palette.destructive)
-        case .success(let message):
-            messageToast(message, symbol: "checkmark.circle.fill", color: palette.success)
-        }
-    }
-
     private func resetToastView(progress: CGFloat, countdown: Int) -> some View {
         ToastView {
             HStack(spacing: 8) {
@@ -423,13 +406,13 @@ struct ContentView: View {
         }
     }
 
-    private func messageToast(_ message: LocalizedStringKey, symbol: String, color: Color) -> some View {
+    private var updateErrorToast: some View {
         ToastView {
             HStack(spacing: 8) {
-                Image(systemName: symbol)
-                    .foregroundColor(color)
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundColor(palette.destructive)
                     .font(.system(size: 12, weight: .bold))
-                Text(message)
+                Text("update_check_failed")
                     .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundColor(.primary)
             }
@@ -834,13 +817,7 @@ private struct ReleaseNotesMarkdownView: View {
         Group {
             if let markdown, !markdown.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 if #available(macOS 12.0, *) {
-                    if let attributed = try? AttributedString(markdown: markdown, options: .init(interpretedSyntax: .full)) {
-                        Text(attributed)
-                            .textSelection(.enabled)
-                    } else {
-                        Text(markdown)
-                            .textSelection(.enabled)
-                    }
+                    releaseNoteText(markdown).textSelection(.enabled)
                 } else {
                     Text(markdown)
                 }
@@ -852,6 +829,14 @@ private struct ReleaseNotesMarkdownView: View {
         .font(.system(size: 11))
         .frame(maxWidth: .infinity, alignment: .leading)
     }
+}
+
+private func releaseNoteText(_ markdown: String) -> Text {
+    if #available(macOS 12.0, *),
+       let attributed = try? AttributedString(markdown: markdown, options: .init(interpretedSyntax: .full)) {
+        return Text(attributed)
+    }
+    return Text(markdown)
 }
 
 private struct WhatsNewBulletsView: View {
@@ -869,19 +854,9 @@ private struct WhatsNewBulletsView: View {
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(.secondary)
                             .padding(.top, 1)
-                        Group {
-                            if #available(macOS 12.0, *) {
-                                if let attributed = try? AttributedString(markdown: bullet, options: .init(interpretedSyntax: .full)) {
-                                    Text(attributed)
-                                } else {
-                                    Text(bullet)
-                                }
-                            } else {
-                                Text(bullet)
-                            }
-                        }
-                        .font(.system(size: 11))
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        releaseNoteText(bullet)
+                            .font(.system(size: 11))
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
             }

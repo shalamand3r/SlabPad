@@ -2,6 +2,10 @@
 // integration with macOS Focus Modes
 
 import AppIntents
+import Foundation
+
+// The extension signals changes, and the menu bar app reads the actual setting from macOS.
+nonisolated let focusFilterDidChange = "mitsboochie.shalamand3r.SlabPad.focusFilterDidChange"
 
 @available(macOS 13.0, *)
 struct SlabPadFocusFilter: SetFocusFilterIntent {
@@ -23,9 +27,13 @@ struct SlabPadFocusFilter: SetFocusFilterIntent {
     }
 
     func perform() async throws -> some IntentResult {
-        await MainActor.run {
-            SlabPadManager.shared.setFocusActive(silenceHaptics)
-        }
+        CFNotificationCenterPostNotification(
+            CFNotificationCenterGetDarwinNotifyCenter(),
+            CFNotificationName(focusFilterDidChange as CFString),
+            nil,
+            nil,
+            true
+        )
         return .result()
     }
 }

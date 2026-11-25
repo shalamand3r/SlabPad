@@ -4,38 +4,28 @@
 import SwiftUI
 import Combine
 
-enum ToastType {
-    case success(LocalizedStringKey)
-    case error(LocalizedStringKey)
-}
-
-struct Toast: Identifiable {
-    let id = UUID()
-    let type: ToastType
-}
-
 @MainActor
 final class ToastManager: ObservableObject {
-    @Published private(set) var toasts: [Toast] = []
+    @Published private(set) var updateErrorIDs: [UUID] = []
     private var timers: [UUID: AnyCancellable] = [:]
     
-    func show(_ type: ToastType) {
-        let toast = Toast(type: type)
+    func showUpdateError() {
+        let id = UUID()
         
         withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-            toasts.append(toast)
+            updateErrorIDs.append(id)
         }
         
-        timers[toast.id] = Just(())
+        timers[id] = Just(())
             .delay(for: .seconds(2.5), scheduler: RunLoop.main)
             .sink { [weak self] _ in
-                self?.dismiss(toast.id)
+                self?.dismiss(id)
             }
     }
 
     private func dismiss(_ id: UUID) {
         withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) {
-            toasts.removeAll { $0.id == id }
+            updateErrorIDs.removeAll { $0 == id }
         }
         timers.removeValue(forKey: id)
     }

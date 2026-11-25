@@ -203,10 +203,9 @@ struct PressurePlayground: View {
                     let ringDY = point.y - ring.center.y
                     let distance = sqrt(ringDX * ringDX + ringDY * ringDY)
                     let displacement = ring.strength(atDistance: distance) * 20
-                    if distance > 0 {
-                        x += ringDX / distance * displacement
-                        y += ringDY / distance * displacement
-                    }
+                    guard distance > 0, displacement > 0 else { continue }
+                    x += ringDX / distance * displacement
+                    y += ringDY / distance * displacement
                 }
 
                 return CGPoint(x: x, y: y)

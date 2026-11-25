@@ -107,7 +107,7 @@ final class SlabPadManager: ObservableObject {
     @Published private var hapticsIssue: HapticsManager.Issue?
 
     private var manualHapticsEnabled: Bool?
-    private var hasReceivedFocusState = false
+    private var focusRefreshTask: Task<Void, Never>?
     private var isDeviceRetryScheduled = false
 
     var hapticsIssueKey: String? { hapticsIssue?.localizationKey }
@@ -152,18 +152,46 @@ final class SlabPadManager: ObservableObject {
         scheduleDeviceDetectionRetry()
 
         if #available(macOS 13.0, *) {
-            Task {
-                let shouldSilence = (try? await SlabPadFocusFilter.current.silenceHaptics) ?? false
-                if !hasReceivedFocusState {
-                    setFocusActive(shouldSilence)
-                }
-            }
+            CFNotificationCenterAddObserver(
+                CFNotificationCenterGetDarwinNotifyCenter(),
+                Unmanaged.passUnretained(self).toOpaque(),
+                { _, _, _, _, _ in
+                    Task { @MainActor in
+                        SlabPadManager.shared.refreshFocusState()
+                    }
+                },
+                focusFilterDidChange as CFString,
+                nil,
+                .deliverImmediately
+            )
+            refreshFocusState()
         }
     }
-    
-    private var currentVersionString: String {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0"
+
+    @available(macOS 13.0, *)
+    private func refreshFocusState() {
+        focusRefreshTask?.cancel()
+        focusRefreshTask = Task {
+            defer {
+                if !Task.isCancelled { focusRefreshTask = nil }
+            }
+            let active: Bool
+            do {
+                active = try await SlabPadFocusFilter.current.silenceHaptics
+            } catch SetFocusFilterIntentError.notFound {
+                active = false
+            } catch {
+                if !Task.isCancelled {
+                    logger.debug("Could not read the current Focus filter: \(error.localizedDescription, privacy: .public)")
+                }
+                return
+            }
+            guard !Task.isCancelled else { return }
+            setFocusActive(active)
+        }
     }
+
+    private let currentVersionString = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0"
     
     var currentVersionText: String {
         "v\(currentVersionString)"
@@ -199,16 +227,18 @@ final class SlabPadManager: ObservableObject {
         }
     }
     
-    func checkForUpdate(completion: ((Result<Bool, Error>) -> Void)? = nil) {
+    func checkForUpdate(onFailure: (() -> Void)? = nil) {
         guard !isCheckingForUpdates else { return }
         guard let currentVersion = ReleaseVersion(currentVersionString) else {
-            completion?(.failure(UpdateCheckError(message: "Invalid installed version")))
+            logger.error("Update check failed: invalid installed version")
+            onFailure?()
             return
         }
 
         let timestamp = Int(Date().timeIntervalSince1970)
         guard let url = URL(string: "https://api.github.com/repos/shalamand3r/SlabPad/releases/latest?t=\(timestamp)") else {
-            completion?(.failure(UpdateCheckError(message: "Invalid update URL")))
+            logger.error("Update check failed: invalid update URL")
+            onFailure?()
             return
         }
 
@@ -258,11 +288,9 @@ final class SlabPadManager: ObservableObject {
                         if !Task.isCancelled { self?.showsUpdateConfirmation = false }
                     }
                 }
-
-                completion?(.success(hasUpdateAvailable))
             } catch {
                 logger.error("Update check failed: \(error.localizedDescription, privacy: .public)")
-                completion?(.failure(error))
+                onFailure?()
             }
         }
     }
@@ -275,8 +303,7 @@ final class SlabPadManager: ObservableObject {
         applyHapticsStateToSystem()
     }
 
-    func setFocusActive(_ active: Bool) {
-        hasReceivedFocusState = true
+    private func setFocusActive(_ active: Bool) {
         if active != isFocusActive {
             isFocusActive = active
         } else if hapticsIssueKey == nil {

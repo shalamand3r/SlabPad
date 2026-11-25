@@ -6,14 +6,64 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		CC230000000000000000000B /* SlabPadFocus.appex in Embed Extensions */ = {isa = PBXBuildFile; fileRef = CC2300000000000000000001; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		CC230000000000000000000D = {isa = PBXContainerItemProxy; containerPortal = C01B446D2F8ADB8500EEC7CD; proxyType = 1; remoteGlobalIDString = CC2300000000000000000003; remoteInfo = SlabPadFocus; };
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		CC230000000000000000000A /* Embed Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Extensions";
+			dstSubfolderSpec = 16;
+			files = (CC230000000000000000000B, );
+			name = "Embed Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		C01B44752F8ADB8500EEC7CD /* SlabPad.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SlabPad.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		CC2300000000000000000001 /* SlabPadFocus.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = SlabPadFocus.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		CC230000000000000000000E = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (Info.plist, );
+			target = CC2300000000000000000003;
+		};
+		CC230000000000000000000F /* App-only files */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				ContentView.swift,
+				HapticsManager.swift,
+				PopoverStyle.swift,
+				PressurePlayground.swift,
+				SlabPadApp.swift,
+				SlabPadIcon.icon,
+				SlabPadManager.swift,
+				ToastManager.swift,
+			);
+			target = CC2300000000000000000003;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		C01B44772F8ADB8500EEC7CD /* SlabPad */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (CC230000000000000000000F, );
 			path = SlabPad;
+			sourceTree = "<group>";
+		};
+		CC2300000000000000000002 /* SlabPadFocus */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (CC230000000000000000000E, );
+			path = SlabPadFocus;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -26,6 +76,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CC2300000000000000000009 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = ( ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -33,6 +84,7 @@
 			isa = PBXGroup;
 			children = (
 				C01B44772F8ADB8500EEC7CD /* SlabPad */,
+				CC2300000000000000000002,
 				C01B44762F8ADB8500EEC7CD /* Products */,
 			);
 			sourceTree = "<group>";
@@ -41,6 +93,7 @@
 			isa = PBXGroup;
 			children = (
 				C01B44752F8ADB8500EEC7CD /* SlabPad.app */,
+				CC2300000000000000000001,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -55,10 +108,12 @@
 				C01B44712F8ADB8500EEC7CD /* Sources */,
 				C01B44722F8ADB8500EEC7CD /* Frameworks */,
 				C01B44732F8ADB8500EEC7CD /* Resources */,
+				CC230000000000000000000A,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				CC230000000000000000000C,
 			);
 			fileSystemSynchronizedGroups = (
 				C01B44772F8ADB8500EEC7CD /* SlabPad */,
@@ -69,6 +124,18 @@
 			productName = HapticToggle;
 			productReference = C01B44752F8ADB8500EEC7CD /* SlabPad.app */;
 			productType = "com.apple.product-type.application";
+		};
+		CC2300000000000000000003 /* SlabPadFocus */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CC2300000000000000000004;
+			buildPhases = (CC2300000000000000000007, CC2300000000000000000009, CC2300000000000000000008, );
+			buildRules = ( );
+			dependencies = ( );
+			fileSystemSynchronizedGroups = (CC2300000000000000000002, C01B44772F8ADB8500EEC7CD, );
+			name = SlabPadFocus;
+			productName = SlabPadFocus;
+			productReference = CC2300000000000000000001;
+			productType = "com.apple.product-type.extensionkit-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -110,6 +177,7 @@
 			projectRoot = "";
 			targets = (
 				C01B44742F8ADB8500EEC7CD /* SlabPad */,
+				CC2300000000000000000003,
 			);
 		};
 /* End PBXProject section */
@@ -122,6 +190,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CC2300000000000000000008 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = ( ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -132,7 +201,12 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		CC2300000000000000000007 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = ( ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		CC230000000000000000000C = {isa = PBXTargetDependency; target = CC2300000000000000000003; targetProxy = CC230000000000000000000D; };
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		C01B447E2F8ADB8A00EEC7CD /* Debug */ = {
@@ -267,12 +341,13 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LM_SKIP_METADATA_EXTRACTION = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.5;
-				MARKETING_VERSION = 3.0;
+				MARKETING_VERSION = 3.1;
 				PRODUCT_BUNDLE_IDENTIFIER = mitsboochie.shalamand3r.SlabPad;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -299,12 +374,13 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LM_SKIP_METADATA_EXTRACTION = YES;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.5;
-				MARKETING_VERSION = 3.0;
+				MARKETING_VERSION = 3.1;
 				PRODUCT_BUNDLE_IDENTIFIER = mitsboochie.shalamand3r.SlabPad;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				REGISTER_APP_GROUPS = YES;
@@ -313,6 +389,44 @@
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		CC2300000000000000000005 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SlabPadFocus/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 3.1;
+				PRODUCT_BUNDLE_IDENTIFIER = mitsboochie.shalamand3r.SlabPad.Focus;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		CC2300000000000000000006 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = SlabPadFocus/Info.plist;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MARKETING_VERSION = 3.1;
+				PRODUCT_BUNDLE_IDENTIFIER = mitsboochie.shalamand3r.SlabPad.Focus;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
 				SWIFT_VERSION = 5.0;
 			};
 			name = Release;
@@ -335,6 +449,12 @@
 				C01B44812F8ADB8A00EEC7CD /* Debug */,
 				C01B44822F8ADB8A00EEC7CD /* Release */,
 			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		CC2300000000000000000004 = {
+			isa = XCConfigurationList;
+			buildConfigurations = (CC2300000000000000000005, CC2300000000000000000006, );
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
