@@ -12,7 +12,7 @@ struct SlabPadFocusFilter: SetFocusFilterIntent {
     var silenceHaptics: Bool
     
     static var parameterSummary: some ParameterSummary {
-        Summary("focus_filter_param_silence: \(\.$silenceHaptics)")
+        Summary("focus_filter_summary \(\.$silenceHaptics)")
     }
 
     var displayRepresentation: DisplayRepresentation {
@@ -24,7 +24,7 @@ struct SlabPadFocusFilter: SetFocusFilterIntent {
 
     func perform() async throws -> some IntentResult {
         await MainActor.run {
-            SlabPadManager.shared.isFocusActive = silenceHaptics
+            SlabPadManager.shared.setFocusActive(silenceHaptics)
         }
         return .result()
     }

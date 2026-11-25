@@ -16,22 +16,19 @@
 "close" = "Close";
 "disable_haptics_button" = "DISABLE HAPTICS";
 "enable_haptics_button" = "ENABLE HAPTICS";
-"loading" = "Loading...";
-"keep_holding_to_reset_app_data" = "Keep holding to reset app data...";
+"loading" = "Loading…";
+"keep_holding_to_reset_app_data" = "Keep holding to reset SlabPad…";
 "up_to_date" = "SlabPad is up to date!";
-"error" = "Error";
 "update_check_failed" = "Update check failed";
 "view_pressure_playground" = "View Pressure Playground";
 "dismiss" = "Dismiss";
 "focus_active" = "FOCUS ACTIVE";
 "view_release_notes" = "View Release Notes";
 "check_for_updates" = "Check for Updates";
-"focus_controls_haptics_title" = "Focus is in control";
-"focus_controls_haptics_message" = "This Focus mode is keeping trackpad haptics silent.";
 "haptics_unavailable_title" = "Trackpad haptics unavailable";
 "haptics_framework_unavailable" = "MultitouchSupport is not available on this Mac.";
 "haptics_private_api_unavailable" = "The trackpad haptics API could not be loaded.";
-"haptics_trackpad_unavailable" = "No built-in Force Touch trackpad was found.";
+"haptics_trackpad_unavailable" = "SlabPad couldn’t connect to a built-in Force Touch trackpad.";
 "haptics_actuator_unavailable" = "This trackpad does not expose a haptic actuator.";
 "haptics_set_failed" = "macOS did not keep the requested haptics state.";
 "haptics_state_read_failed" = "SlabPad could not verify the haptics state.";
@@ -42,7 +39,8 @@
 
 // FocusFilter.swift (macOS Focus Filter UI)
 "focus_filter_title" = "SlabPad Silence";
-"focus_filter_description" = "Disables trackpad haptics when this Focus Mode is active.";
+"focus_filter_description" = "Turns off trackpad haptics while this Focus is active.";
 "focus_filter_param_silence" = "Disable Haptics";
 "focus_filter_subtitle_on" = "Haptics disabled";
 "focus_filter_subtitle_off" = "Haptics enabled";
+"focus_filter_summary ${silenceHaptics}" = "Disable haptics: ${silenceHaptics}";

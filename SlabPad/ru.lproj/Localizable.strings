@@ -3,7 +3,7 @@
 "launch_at_login_macos13" = "Запускать при входе (macOS 13+)";
 "disable_haptics_on_launch" = "Отключить тактильный отклик при запуске";
 "re_enable_haptics_on_quit" = "Включить тактильный отклик при выходе";
-"invert_menu_bar_clicks" = "Инвертировать клики в строке меню";
+"invert_menu_bar_clicks" = "Поменять местами левый и правый щелчки в строке меню";
 "settings" = "Настройки";
 
 // ContentView.swift
@@ -16,22 +16,19 @@
 "close" = "Закрыть";
 "disable_haptics_button" = "ОТКЛЮЧИТЬ ТАКТИЛЬНЫЙ ОТКЛИК";
 "enable_haptics_button" = "ВКЛЮЧИТЬ ТАКТИЛЬНЫЙ ОТКЛИК";
-"loading" = "Загрузка...";
-"keep_holding_to_reset_app_data" = "Удерживайте, чтобы сбросить данные приложения...";
-"up_to_date" = "SlabPad обновлен до последней версии!";
-"error" = "Ошибка";
+"loading" = "Загрузка…";
+"keep_holding_to_reset_app_data" = "Продолжайте удерживать кнопку, чтобы сбросить настройки SlabPad…";
+"up_to_date" = "Установлена последняя версия SlabPad!";
 "update_check_failed" = "Ошибка проверки обновлений";
 "view_pressure_playground" = "Открыть Pressure Playground";
 "dismiss" = "Отклонить";
-"focus_active" = "ФОКУС АКТИВЕН";
+"focus_active" = "ФОКУСИРОВАНИЕ ВКЛЮЧЕНО";
 "view_release_notes" = "Показать примечания к выпуску";
 "check_for_updates" = "Проверить обновления";
-"focus_controls_haptics_title" = "Фокус управляет откликом";
-"focus_controls_haptics_message" = "Этот режим Фокус удерживает тактильный отклик трекпада выключенным.";
 "haptics_unavailable_title" = "Тактильный отклик трекпада недоступен";
 "haptics_framework_unavailable" = "MultitouchSupport недоступен на этом Mac.";
 "haptics_private_api_unavailable" = "Не удалось загрузить API тактильного отклика трекпада.";
-"haptics_trackpad_unavailable" = "Встроенный трекпад Force Touch не найден.";
+"haptics_trackpad_unavailable" = "SlabPad не удалось подключиться ко встроенному трекпаду Force Touch.";
 "haptics_actuator_unavailable" = "Этот трекпад не предоставляет тактильный актуатор.";
 "haptics_set_failed" = "macOS не сохранила запрошенное состояние отклика.";
 "haptics_state_read_failed" = "SlabPad не смог проверить состояние отклика.";
@@ -46,3 +43,4 @@
 "focus_filter_param_silence" = "Отключить тактильный отклик";
 "focus_filter_subtitle_on" = "Тактильный отклик отключен";
 "focus_filter_subtitle_off" = "Тактильный отклик включен";
+"focus_filter_summary ${silenceHaptics}" = "Отключить тактильный отклик: ${silenceHaptics}";

@@ -25,34 +25,29 @@ struct SlabPadApp: App {
 }
 
 @MainActor
-final class AppDelegate: NSObject, NSApplicationDelegate {
+final class AppDelegate: NSObject, NSApplicationDelegate, NSPopoverDelegate {
     private let manager = SlabPadManager.shared
     private let logger = Logger(subsystem: "SlabPad", category: "app")
     private var statusBarItem: NSStatusItem!
-    private var popover: NSPopover!
-    private var cancellables = Set<AnyCancellable>()
+    private let popoverVisibility = PopoverVisibility()
+    private var didStartAutomaticUpdateCheck = false
+    private var relaunchOnTermination = false
+    private lazy var popover: NSPopover = {
+        let popover = NSPopover()
+        popover.contentSize = NSSize(width: popoverWidth, height: 10)
+        popover.behavior = .transient
+        popover.delegate = self
+        popover.contentViewController = NSHostingController(rootView: ContentView(popoverVisibility: popoverVisibility))
+        return popover
+    }()
+    private var hapticsStatusSubscription: AnyCancellable?
 
     private let popoverWidth: CGFloat = 288
     private let maxPopoverHeight: CGFloat = 500
 
-    private enum MenuBarIcon {
-        static let hapticsOnSymbolName = "rectangle.and.hand.point.up.left.fill"
-        static let hapticsOffSymbolName = "rectangle.and.hand.point.up.left"
-
-        static func symbolName(hapticsEnabled: Bool) -> String {
-            hapticsEnabled ? hapticsOnSymbolName : hapticsOffSymbolName
-        }
-    }
-    
     func applicationDidFinishLaunching(_ notification: Notification) {
         // hide dock icon
         NSApp.setActivationPolicy(.accessory)
-        
-        popover = NSPopover()
-        popover.contentSize = NSSize(width: popoverWidth, height: 10)
-        popover.behavior = .transient
-        // bridge swiftui to appkit popover
-        popover.contentViewController = NSHostingController(rootView: ContentView())
         
         statusBarItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         
@@ -60,23 +55,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // left + right click both do things
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             button.action = #selector(handleMenuBarClick)
-            updateIcon()
         }
 
-        manager.$isHapticsEnabled
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
-                // keep icon in sync
-                self?.updateIcon()
-            }
-            .store(in: &cancellables)
-
-        manager.$isFocusActive
-            .receive(on: RunLoop.main)
-            .sink { [weak self] _ in
-                self?.updateIcon()
-            }
-            .store(in: &cancellables)
+        hapticsStatusSubscription = manager.$isHapticsEnabled.sink { [weak self] enabled in
+            self?.updateIcon(hapticsEnabled: enabled)
+        }
 
         NSWorkspace.shared.notificationCenter.addObserver(
             self,
@@ -117,7 +100,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if !manager.hasLaunchedBefore {
             manager.hasLaunchedBefore = true
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                self?.togglePopover()
+                guard let self, !popoverVisibility.isVisible else { return }
+                togglePopover()
             }
         }
     }
@@ -125,7 +109,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func handleWake(_ notification: Notification) {
         // macos sleep sometimes resets haptics, force reapply
         manager.applyHapticsStateToSystem()
-        updateIcon()
+        manager.scheduleDeviceDetectionRetry()
     }
     
     @objc private func handleMenuBarClick() {
@@ -141,13 +125,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
     
-    private func updateIcon() {
+    private func updateIcon(hapticsEnabled: Bool?) {
         guard let button = statusBarItem.button else { return }
-        let effectiveHapticsEnabled = manager.isFocusActive ? false : manager.isHapticsEnabled
-        let iconName = MenuBarIcon.symbolName(hapticsEnabled: effectiveHapticsEnabled)
-        button.image = NSImage(systemSymbolName: iconName, accessibilityDescription: "SlabPad")
+        let symbol: String
+        switch hapticsEnabled {
+        case true?: symbol = "rectangle.and.hand.point.up.left.fill"
+        case false?: symbol = "rectangle.and.hand.point.up.left"
+        case nil: symbol = "exclamationmark.triangle"
+        }
+        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: "SlabPad")
     }
-    
+
     private func togglePopover() {
         guard let button = statusBarItem.button else { return }
 
@@ -164,11 +152,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         popover.contentViewController?.view.window?.makeKey()
     }
 
+    func popoverWillShow(_ notification: Notification) {
+        popoverVisibility.isVisible = true
+    }
+
+    func popoverDidShow(_ notification: Notification) {
+        manager.retryDeviceDetectionIfNeeded()
+        guard !didStartAutomaticUpdateCheck else { return }
+        didStartAutomaticUpdateCheck = true
+        manager.checkForUpdate()
+    }
+
+    func popoverWillClose(_ notification: Notification) {
+        popoverVisibility.isVisible = false
+    }
+
     @objc private func handlePopoverNeedsResize() {
         guard popover.isShown else { return }
         
-        DispatchQueue.main.async {
-            self.adjustPopoverSize()
+        DispatchQueue.main.async { [weak self] in
+            guard let self, popoverVisibility.isVisible else { return }
+            adjustPopoverSize()
         }
     }
 
@@ -190,14 +194,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc private func handleResetAndQuitRequest() {
-        resetAppDefaultsForTesting()
+        resetSlabPadPreferences()
         
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
             self?.closePopoverAndQuit(relaunch: true)
         }
     }
     
-    private func resetAppDefaultsForTesting() {
+    private func resetSlabPadPreferences() {
         let defaults = UserDefaults.standard
 
         // keep language/locale behavior intact; only reset our own app prefs
@@ -216,9 +220,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let quitAfterCloseDelay: TimeInterval = 0.08
         popover.performClose(nil)
         DispatchQueue.main.asyncAfter(deadline: .now() + quitAfterCloseDelay) { [weak self] in
-            if relaunch {
-                self?.relaunchApp()
-            }
+            self?.relaunchOnTermination = relaunch
             NSApplication.shared.terminate(nil)
         }
     }
@@ -250,5 +252,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // restore haptics on exit
             HapticsManager.shared.setHaptics(to: true)
         }
+        // Finish any trackpad writes before the new instance applies its launch preference.
+        if relaunchOnTermination {
+            relaunchApp()
+        }
     }
+}
+
+@MainActor
+final class PopoverVisibility: ObservableObject {
+    @Published var isVisible = false
 }

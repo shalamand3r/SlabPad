@@ -1,0 +1,46 @@
+// Settings
+"settings" = "設定";
+"launch_at_login" = "登入時開啟";
+"launch_at_login_macos13" = "登入時開啟（macOS 13 或以上版本）";
+"disable_haptics_on_launch" = "啟動時關閉觸覺回饋";
+"re_enable_haptics_on_quit" = "結束時恢復觸覺回饋";
+"invert_menu_bar_clicks" = "對調選單列的左右鍵點按";
+
+// ContentView.swift
+"click_to_download_latest_version" = "按一下以下載最新版本";
+"hint_left_click_menu_bar" = "在選單列圖像上按左鍵，即可切換觸覺回饋";
+"hint_right_click_menu_bar" = "在選單列圖像上按右鍵，即可切換觸覺回饋";
+"quit" = "結束";
+"whats_new" = "最新消息";
+"open_on_github" = "在 GitHub 上開啟";
+"close" = "關閉";
+"disable_haptics_button" = "關閉觸覺回饋";
+"enable_haptics_button" = "開啟觸覺回饋";
+"loading" = "載入中…";
+"keep_holding_to_reset_app_data" = "繼續按住可重置 SlabPad…";
+"up_to_date" = "SlabPad 已是最新版本！";
+"update_check_failed" = "無法檢查更新";
+"view_pressure_playground" = "開啟按壓測試區";
+"dismiss" = "關閉";
+"focus_active" = "專注模式已開啟";
+"view_release_notes" = "查看版本說明";
+"check_for_updates" = "檢查更新";
+"haptics_unavailable_title" = "無法使用觸控式軌跡板的觸覺回饋";
+"haptics_framework_unavailable" = "這部 Mac 無法使用 MultitouchSupport。";
+"haptics_private_api_unavailable" = "無法載入觸控式軌跡板的觸覺回饋功能。";
+"haptics_trackpad_unavailable" = "SlabPad 無法連接內建的力度觸控板。";
+"haptics_actuator_unavailable" = "無法控制這個觸控式軌跡板的觸覺回饋。";
+"haptics_set_failed" = "macOS 未能套用要求的觸覺回饋設定。";
+"haptics_state_read_failed" = "SlabPad 無法確認觸覺回饋的狀態。";
+
+// PressurePlayground.swift
+"pressure_playground_requires_macos_12" = "按壓測試區需要 macOS 12 或以上版本";
+"close_playground" = "關閉按壓測試區";
+
+// FocusFilter.swift (macOS Focus Filter UI)
+"focus_filter_title" = "SlabPad 靜音";
+"focus_filter_description" = "在此專注模式開啟時關閉觸控式軌跡板的觸覺回饋。";
+"focus_filter_param_silence" = "關閉觸覺回饋";
+"focus_filter_subtitle_on" = "觸覺回饋已關閉";
+"focus_filter_subtitle_off" = "觸覺回饋已開啟";
+"focus_filter_summary ${silenceHaptics}" = "關閉觸覺回饋：${silenceHaptics}";

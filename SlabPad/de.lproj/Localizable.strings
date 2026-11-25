@@ -2,8 +2,8 @@
 "launch_at_login" = "Beim Anmelden starten";
 "launch_at_login_macos13" = "Beim Anmelden starten (macOS 13+)";
 "disable_haptics_on_launch" = "Haptik beim Start deaktivieren";
-"re_enable_haptics_on_quit" = "Haptik beim Beenden reaktivieren";
-"invert_menu_bar_clicks" = "Menüleistenklicks invertieren";
+"re_enable_haptics_on_quit" = "Haptik beim Beenden wieder aktivieren";
+"invert_menu_bar_clicks" = "Links- und Rechtsklick in der Menüleiste tauschen";
 "settings" = "Einstellungen";
 
 // ContentView.swift
@@ -16,23 +16,20 @@
 "close" = "Schließen";
 "disable_haptics_button" = "HAPTIK DEAKTIVIEREN";
 "enable_haptics_button" = "HAPTIK AKTIVIEREN";
-"loading" = "Wird geladen...";
-"keep_holding_to_reset_app_data" = "Halten, um App-Daten zurückzusetzen...";
+"loading" = "Wird geladen…";
+"keep_holding_to_reset_app_data" = "Weiter gedrückt halten, um SlabPad zurückzusetzen…";
 "up_to_date" = "SlabPad ist auf dem neuesten Stand!";
-"error" = "Fehler";
 "update_check_failed" = "Update-Überprüfung fehlgeschlagen";
 "view_pressure_playground" = "Pressure Playground anzeigen";
 "dismiss" = "Ausblenden";
 "focus_active" = "FOKUS AKTIV";
 "view_release_notes" = "Versionshinweise anzeigen";
 "check_for_updates" = "Auf Updates prüfen";
-"focus_controls_haptics_title" = "Fokus steuert die Haptik";
-"focus_controls_haptics_message" = "Dieser Fokusmodus hält die Trackpad-Haptik stumm.";
 "haptics_unavailable_title" = "Trackpad-Haptik nicht verfügbar";
 "haptics_framework_unavailable" = "MultitouchSupport ist auf diesem Mac nicht verfügbar.";
 "haptics_private_api_unavailable" = "Die Trackpad-Haptik-API konnte nicht geladen werden.";
-"haptics_trackpad_unavailable" = "Kein integriertes Force Touch-Trackpad gefunden.";
-"haptics_actuator_unavailable" = "Dieses Trackpad stellt keinen haptischen Aktuator bereit.";
+"haptics_trackpad_unavailable" = "SlabPad konnte keine Verbindung zum integrierten Force Touch-Trackpad herstellen.";
+"haptics_actuator_unavailable" = "Für dieses Trackpad ist keine haptische Rückmeldung verfügbar.";
 "haptics_set_failed" = "macOS hat den angeforderten Haptikstatus nicht beibehalten.";
 "haptics_state_read_failed" = "SlabPad konnte den Haptikstatus nicht überprüfen.";
 
@@ -46,3 +43,4 @@
 "focus_filter_param_silence" = "Haptik deaktivieren";
 "focus_filter_subtitle_on" = "Haptik deaktiviert";
 "focus_filter_subtitle_off" = "Haptik aktiviert";
+"focus_filter_summary ${silenceHaptics}" = "Haptik deaktivieren: ${silenceHaptics}";

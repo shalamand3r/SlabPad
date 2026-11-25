@@ -8,30 +8,27 @@
 
 // ContentView.swift
 "click_to_download_latest_version" = "点击下载最新版本！";
-"hint_left_click_menu_bar" = "左键点击菜单栏图标可快速切换触感反馈";
-"hint_right_click_menu_bar" = "右键点击 菜单栏图标可快速切换触感反馈";
+"hint_left_click_menu_bar" = "左键点按菜单栏图标即可切换触控板触感反馈";
+"hint_right_click_menu_bar" = "右键点按菜单栏图标即可切换触控板触感反馈";
 "quit" = "退出";
 "whats_new" = "新功能";
 "open_on_github" = "在 GitHub 上打开";
 "close" = "关闭";
 "disable_haptics_button" = "禁用触感反馈";
 "enable_haptics_button" = "启用触感反馈";
-"loading" = "正在加载...";
-"keep_holding_to_reset_app_data" = "长按以重置应用数据...";
+"loading" = "正在载入…";
+"keep_holding_to_reset_app_data" = "继续按住可重置 SlabPad…";
 "up_to_date" = "SlabPad 已是最新版本！";
-"error" = "错误";
 "update_check_failed" = "更新检查失败";
 "view_pressure_playground" = "查看 Pressure Playground";
 "dismiss" = "关闭";
-"focus_active" = "焦点已激活";
+"focus_active" = "专注模式已开启";
 "view_release_notes" = "查看版本说明";
 "check_for_updates" = "检查更新";
-"focus_controls_haptics_title" = "专注模式正在控制触感";
-"focus_controls_haptics_message" = "此专注模式会让触控板触感保持静音。";
 "haptics_unavailable_title" = "触控板触感不可用";
 "haptics_framework_unavailable" = "此 Mac 上无法使用 MultitouchSupport。";
 "haptics_private_api_unavailable" = "无法载入触控板触感 API。";
-"haptics_trackpad_unavailable" = "未找到内置 Force Touch 触控板。";
+"haptics_trackpad_unavailable" = "SlabPad 无法连接内建的力度触控板。";
 "haptics_actuator_unavailable" = "此触控板未提供触感致动器。";
 "haptics_set_failed" = "macOS 未保持请求的触感状态。";
 "haptics_state_read_failed" = "SlabPad 无法验证触感状态。";
@@ -42,7 +39,8 @@
 
 // FocusFilter.swift (macOS Focus Filter UI)
 "focus_filter_title" = "SlabPad 静音";
-"focus_filter_description" = "当此专注模式处于活动状态时，禁用触控板触感反馈。";
+"focus_filter_description" = "在此专注模式开启时关闭触控板触感反馈。";
 "focus_filter_param_silence" = "禁用触感反馈";
 "focus_filter_subtitle_on" = "触感反馈已禁用";
 "focus_filter_subtitle_off" = "触感反馈已启用";
+"focus_filter_summary ${silenceHaptics}" = "关闭触感反馈：${silenceHaptics}";

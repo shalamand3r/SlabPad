@@ -2,12 +2,15 @@
 // wrapper for private multitouch apis
 
 import Foundation
+import CoreFoundation
 
-typealias MTDeviceCreateDefaultType = @convention(c) () -> UnsafeMutableRawPointer?
-typealias MTDeviceGetMTActuatorType = @convention(c) (UnsafeMutableRawPointer) -> UnsafeMutableRawPointer?
-typealias MTActuatorGetSystemActuationsEnabledType = @convention(c) (UnsafeMutableRawPointer) -> Int
-typealias MTActuatorSetSystemActuationsEnabledType = @convention(c) (UnsafeMutableRawPointer, Int) -> Int32
-typealias MTDeviceReleaseType = @convention(c) (UnsafeMutableRawPointer) -> Void
+private typealias MTDeviceCreateListType = @convention(c) () -> Unmanaged<CFArray>?
+private typealias MTDeviceIsBuiltInType = @convention(c) (UnsafeMutableRawPointer) -> Bool
+private typealias MTDeviceCreateDefaultType = @convention(c) () -> UnsafeMutableRawPointer?
+private typealias MTDeviceGetMTActuatorType = @convention(c) (UnsafeMutableRawPointer) -> UnsafeMutableRawPointer?
+private typealias MTActuatorGetSystemActuationsEnabledType = @convention(c) (UnsafeMutableRawPointer) -> Int
+private typealias MTActuatorSetSystemActuationsEnabledType = @convention(c) (UnsafeMutableRawPointer, Int) -> Int32
+private typealias MTDeviceReleaseType = @convention(c) (UnsafeMutableRawPointer) -> Void
 
 final class HapticsManager {
     static let shared = HapticsManager()
@@ -40,13 +43,14 @@ final class HapticsManager {
     
     // private API definitions
     private var createDefault: MTDeviceCreateDefaultType?
+    private var createDeviceList: MTDeviceCreateListType?
+    private var isBuiltIn: MTDeviceIsBuiltInType?
     private var getActuator: MTDeviceGetMTActuatorType?
     private var getEnabled: MTActuatorGetSystemActuationsEnabledType?
     private var setEnabled: MTActuatorSetSystemActuationsEnabledType?
     private var releaseDevice: MTDeviceReleaseType?
 
     private let handle: UnsafeMutableRawPointer?
-    private var loadIssue: Issue?
 
     private init() {
         // dynamic load to bypass static linking
@@ -55,13 +59,12 @@ final class HapticsManager {
             RTLD_NOW
         )
 
-        guard let handle else {
-            loadIssue = .frameworkUnavailable
-            return
-        }
+        guard let handle else { return }
 
         // load function pointers
         createDefault = loadSymbol("MTDeviceCreateDefault", from: handle, type: MTDeviceCreateDefaultType.self)
+        createDeviceList = loadSymbol("MTDeviceCreateList", from: handle, type: MTDeviceCreateListType.self)
+        isBuiltIn = loadSymbol("MTDeviceIsBuiltIn", from: handle, type: MTDeviceIsBuiltInType.self)
         getActuator = loadSymbol("MTDeviceGetMTActuator", from: handle, type: MTDeviceGetMTActuatorType.self)
         getEnabled = loadSymbol(
             "MTActuatorGetSystemActuationsEnabled",
@@ -87,67 +90,76 @@ final class HapticsManager {
         }
     }
 
-    func availabilityIssue() -> Issue? {
-        if let loadIssue { return loadIssue }
-        guard let createDevice = createDefault,
-              let getTrackpadActuator = getActuator,
-              releaseDevice != nil,
-              getEnabled != nil,
-              setEnabled != nil else { return .symbolUnavailable }
+    private func withActuator<T>(
+        _ body: (UnsafeMutableRawPointer) -> Result<T, Issue>
+    ) -> Result<T, Issue> {
+        guard let getActuator else { return .failure(.symbolUnavailable) }
 
-        guard let device = createDevice() else { return .deviceUnavailable }
-        defer { releaseDevice?(device) }
+        var issue: Issue = .symbolUnavailable
+        if let createDefault, let releaseDevice {
+            issue = .deviceUnavailable
+            if let device = createDefault() {
+                defer { releaseDevice(device) }
+                if isBuiltIn?(device) != false {
+                    if let actuator = getActuator(device) {
+                        return body(actuator)
+                    }
+                    issue = .actuatorUnavailable
+                }
+            }
+        }
 
-        guard getTrackpadActuator(device) != nil else { return .actuatorUnavailable }
-        return nil
+        guard let createDeviceList, let isBuiltIn else { return .failure(issue) }
+        if issue == .symbolUnavailable { issue = .deviceUnavailable }
+        guard let devices = createDeviceList()?.takeRetainedValue() else { return .failure(issue) }
+        // Devices borrowed from this list stay alive only as long as the list does.
+        return withExtendedLifetime(devices) {
+            for index in 0..<CFArrayGetCount(devices) {
+                guard let entry = CFArrayGetValueAtIndex(devices, index) else { continue }
+                let device = UnsafeMutableRawPointer(mutating: entry)
+                guard isBuiltIn(device) else { continue }
+                if let actuator = getActuator(device) {
+                    return body(actuator)
+                }
+                issue = .actuatorUnavailable
+            }
+            return .failure(issue)
+        }
     }
 
-    private func withActuator<T>(_ body: (UnsafeMutableRawPointer) -> T) -> Result<T, Issue> {
-        if let loadIssue { return .failure(loadIssue) }
-        guard let createDevice = createDefault,
-              let getTrackpadActuator = getActuator,
-              let release = releaseDevice else { return .failure(.symbolUnavailable) }
-
-        guard let device = createDevice() else { return .failure(.deviceUnavailable) }
-        defer { release(device) }
-
-        guard let actuator = getTrackpadActuator(device) else { return .failure(.actuatorUnavailable) }
-        return .success(body(actuator))
-    }
-    
     @discardableResult
-    func setHaptics(to enabled: Bool) -> Issue? {
-        guard let setSystemEnabled = setEnabled else { return .symbolUnavailable }
-        let setResult = withActuator { actuator in
-            _ = setSystemEnabled(actuator, enabled ? 1 : 0)
-        }
-
-        if case .failure(let issue) = setResult {
-            return issue
-        }
-
-        switch readEnabledState() {
-        case .success(let observed):
-            return observed == enabled ? nil : .setFailed
-        case .failure:
-            return .stateReadFailed
-        }
-    }
-    
-    func isEnabled() -> Bool {
-        if case .success(let isEnabled) = readEnabledState() {
-            return isEnabled
-        }
-
-        // default to true on fail to prevent bricking trackpad
-        return true
-    }
-
-    private func readEnabledState() -> Result<Bool, Issue> {
-        guard let getSystemEnabled = getEnabled else { return .failure(.symbolUnavailable) }
+    func setHaptics(to enabled: Bool) -> Result<Bool, Issue> {
+        guard handle != nil else { return .failure(.frameworkUnavailable) }
+        guard let getEnabled, let setEnabled else { return .failure(.symbolUnavailable) }
 
         return withActuator { actuator in
-            getSystemEnabled(actuator) == 1
+            let target = enabled ? 1 : 0
+            if getEnabled(actuator) == target {
+                return .success(enabled)
+            }
+
+            _ = setEnabled(actuator, target)
+            return readHapticsState(from: actuator, using: getEnabled)
+        }
+    }
+
+    func readHapticsState() -> Result<Bool, Issue> {
+        guard handle != nil else { return .failure(.frameworkUnavailable) }
+        guard let getEnabled else { return .failure(.symbolUnavailable) }
+
+        return withActuator { actuator in
+            readHapticsState(from: actuator, using: getEnabled)
+        }
+    }
+
+    private func readHapticsState(
+        from actuator: UnsafeMutableRawPointer,
+        using getEnabled: MTActuatorGetSystemActuationsEnabledType
+    ) -> Result<Bool, Issue> {
+        switch getEnabled(actuator) {
+        case 0: return .success(false)
+        case 1: return .success(true)
+        default: return .failure(.stateReadFailed)
         }
     }
 }

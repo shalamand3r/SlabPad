@@ -1,6 +1,6 @@
 // Settings
-"launch_at_login" = "Iniciar ao fazer login";
-"launch_at_login_macos13" = "Iniciar ao fazer login (macOS 13+)";
+"launch_at_login" = "Abrir ao iniciar sessão";
+"launch_at_login_macos13" = "Abrir ao iniciar sessão (macOS 13+)";
 "disable_haptics_on_launch" = "Desativar resposta tátil ao iniciar";
 "re_enable_haptics_on_quit" = "Reativar resposta tátil ao encerrar";
 "invert_menu_bar_clicks" = "Inverter cliques da barra de menus";
@@ -16,22 +16,19 @@
 "close" = "Fechar";
 "disable_haptics_button" = "DESATIVAR RESPOSTA TÁTIL";
 "enable_haptics_button" = "ATIVAR RESPOSTA TÁTIL";
-"loading" = "Carregando...";
-"keep_holding_to_reset_app_data" = "Mantenha pressionado para redefinir dados do app...";
+"loading" = "Carregando…";
+"keep_holding_to_reset_app_data" = "Continue pressionando para redefinir o SlabPad…";
 "up_to_date" = "O SlabPad está na versão mais recente!";
-"error" = "Erro";
 "update_check_failed" = "Falha na verificação de atualização";
 "view_pressure_playground" = "Visualizar Pressure Playground";
 "dismiss" = "Dispensar";
 "focus_active" = "FOCO ATIVO";
 "view_release_notes" = "Ver notas da versão";
 "check_for_updates" = "Verificar atualizações";
-"focus_controls_haptics_title" = "Foco controla a resposta tátil";
-"focus_controls_haptics_message" = "Este modo Foco mantém a resposta tátil do trackpad silenciosa.";
 "haptics_unavailable_title" = "Resposta tátil do trackpad indisponível";
 "haptics_framework_unavailable" = "MultitouchSupport não está disponível neste Mac.";
 "haptics_private_api_unavailable" = "Não foi possível carregar a API tátil do trackpad.";
-"haptics_trackpad_unavailable" = "Nenhum trackpad Force Touch integrado foi encontrado.";
+"haptics_trackpad_unavailable" = "O SlabPad não conseguiu se conectar ao trackpad Force Touch integrado.";
 "haptics_actuator_unavailable" = "Este trackpad não expõe um atuador tátil.";
 "haptics_set_failed" = "O macOS não manteve o estado tátil solicitado.";
 "haptics_state_read_failed" = "O SlabPad não conseguiu verificar o estado tátil.";
@@ -42,7 +39,8 @@
 
 // FocusFilter.swift (macOS Focus Filter UI)
 "focus_filter_title" = "SlabPad Silêncio";
-"focus_filter_description" = "Desativa os ajustes táteis do trackpad quando este Modo de Foco estiver ativo.";
-"focus_filter_param_silence" = "Desativar Ajustes Táteis";
-"focus_filter_subtitle_on" = "Ajustes táteis desativados";
-"focus_filter_subtitle_off" = "Ajustes táteis ativados";
+"focus_filter_description" = "Desativa a resposta tátil do trackpad enquanto este Foco estiver ativo.";
+"focus_filter_param_silence" = "Desativar resposta tátil";
+"focus_filter_subtitle_on" = "Resposta tátil desativada";
+"focus_filter_subtitle_off" = "Resposta tátil ativada";
+"focus_filter_summary ${silenceHaptics}" = "Desativar resposta tátil: ${silenceHaptics}";
