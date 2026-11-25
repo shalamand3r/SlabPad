@@ -2,22 +2,22 @@
 // main ui for the menubar popover
 
 import SwiftUI
-import Combine
 import Foundation
 
 struct ContentView: View {
+    @Environment(\.colorScheme) private var appearance
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    @ObservedObject var popoverVisibility: PopoverVisibility
     @ObservedObject private var manager = SlabPadManager.shared
     @State private var activePanel: Panel = .mainButton
     @State private var isHoveringUpdateBadge = false
     @State private var updateHoverFlipWorkItem: DispatchWorkItem?
     @State private var updatePressed = false
     @State private var quitPressed = false
-    @State private var isHoveringBottomHint = false
     @AppStorage("showBottomHint") private var showBottomHint = true
     @State private var resetHoldTriggered = false
-    @State private var isPowerPressActive = false
-    @State private var powerHoldStartWorkItem: DispatchWorkItem?
-    @State private var powerHoldCompleteWorkItem: DispatchWorkItem?
+    @State private var powerHoldTask: Task<Void, Never>?
     @State private var powerHoldProgress: CGFloat = 0
     @State private var powerHoldDidStartProgress = false
     @State private var ignoreNextPowerTap = false
@@ -26,6 +26,7 @@ struct ContentView: View {
     @StateObject private var toastManager = ToastManager()
     
     private let spring = Animation.spring(response: 0.5, dampingFraction: 0.82)
+    private var palette: PopoverPalette { PopoverPalette(scheme: appearance) }
 
     private enum Panel: Hashable {
         case mainButton
@@ -49,12 +50,6 @@ struct ContentView: View {
         return "launch_at_login_macos13"
     }
     
-    private var latestVersionText: String {
-        guard let latestTag = manager.latestReleaseTag else { return manager.currentVersionText }
-        let tag = latestTag.trimmingCharacters(in: .whitespacesAndNewlines)
-        return tag.hasPrefix("v") ? tag : "v\(tag)"
-    }
-    
     private var shouldShowLatestInVersionPill: Bool {
         manager.hasUpdateAvailable && (isHoveringUpdateBadge || activePanel == .releaseNotes)
     }
@@ -67,27 +62,32 @@ struct ContentView: View {
         .frame(width: 288)
         .fixedSize(horizontal: false, vertical: true)
         .padding(.bottom, 14)
-        .background(VisualEffectView(material: .hudWindow, blendingMode: .behindWindow))
         .overlay(
             VStack(spacing: 8) {
                 ForEach(toastManager.toasts) { toast in
                     renderToast(toast)
                 }
+                if powerHoldDidStartProgress {
+                    resetToastView(progress: powerHoldProgress, countdown: resetCountdownValue)
+                }
             }
-            .padding(.bottom, 20),
+            .padding(.horizontal, 20)
+            .padding(.bottom, 20)
+            .allowsHitTesting(false),
             alignment: .bottom
         )
-        .onChange(of: activePanel) { _ in requestPopoverResize() }
-        .onChange(of: manager.hapticsIssueKey) { issueKey in
-            guard let issueKey else { return }
-            showError(LocalizedStringKey(issueKey))
+        .onChange(of: popoverVisibility.isVisible) { isVisible in
+            if !isVisible {
+                endPowerHold()
+                updateHoverFlipWorkItem?.cancel()
+                updateHoverFlipWorkItem = nil
+                isHoveringUpdateBadge = false
+            }
         }
+        .onChange(of: activePanel) { _ in requestPopoverResize() }
+        .onChange(of: manager.hapticsIssueKey) { _ in requestPopoverResize() }
     }
 
-    private func showError(_ message: LocalizedStringKey) {
-        toastManager.show(.error(message))
-    }
-    
     private struct ToastView<Content: View>: View {
         let content: Content
         
@@ -100,9 +100,9 @@ struct ContentView: View {
                 .padding(.vertical, 8)
                 .padding(.horizontal, 16)
                 .background(
-                    VisualEffectView(material: .hudWindow, blendingMode: .withinWindow)
-                        .clipShape(Capsule())
-                        .overlay(Capsule().stroke(Color.primary.opacity(0.12), lineWidth: 0.5))
+                    ToastBackdrop()
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                        .overlay(PopoverSurface(shape: RoundedRectangle(cornerRadius: 12, style: .continuous)))
                 )
                 .shadow(color: .black.opacity(0.12), radius: 6, y: 3)
                 .transition(.asymmetric(
@@ -113,7 +113,7 @@ struct ContentView: View {
     }
     
     private var headerSection: some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 5) {
             Button(action: {
                 withAnimation(spring) {
                     activePanel = activePanel == .pressurePlayground ? .mainButton : .pressurePlayground
@@ -137,49 +137,23 @@ struct ContentView: View {
                 } else if !manager.isCheckingForUpdates {
                     manager.checkForUpdate { result in
                         switch result {
-                        case .success(let isAvailable):
-                            if !isAvailable {
-                                toastManager.show(.success(LocalizedStringKey("up_to_date")))
-                            }
+                        case .success:
+                            break
                         case .failure:
-                            showError(LocalizedStringKey("update_check_failed"))
+                            toastManager.show(.error(LocalizedStringKey("update_check_failed")))
                         }
                     }
                 }
             }) {
-                HStack(spacing: 4) {
-                    if manager.isCheckingForUpdates {
-                        ProgressView()
-                            .controlSize(.small)
-                            .scaleEffect(0.6)
-                            .frame(width: 12, height: 12)
-                    }
-                    
-                    VersionPillLabel(
-                        current: manager.currentVersionText,
-                        latest: latestVersionText,
-                        showLatest: shouldShowLatestInVersionPill
-                    )
-                }
-                .font(.system(size: 10, weight: .bold, design: .monospaced))
-                .lineLimit(1)
-                .layoutPriority(1)
-                .foregroundColor(activePanel == .releaseNotes ? .accentColor : .secondary.opacity(0.6))
-                .padding(.horizontal, 6)
-                .padding(.vertical, 2)
-                .background(
-                    Capsule()
-                        .fill(activePanel == .releaseNotes ? Color.accentColor.opacity(0.15) : Color.primary.opacity(0.06))
-                        .overlay(Capsule().stroke(activePanel == .releaseNotes ? Color.accentColor.opacity(0.2) : Color.primary.opacity(0.1), lineWidth: 0.5))
-                )
-                .shadow(color: .black.opacity(0.05), radius: 2, y: 1)
-                .animation(.easeInOut(duration: 0.18), value: shouldShowLatestInVersionPill)
-                .animation(.easeInOut(duration: 0.18), value: manager.isCheckingForUpdates)
+                versionPill
             }
             .buttonStyle(PopButtonStyle())
-            .help(Text(manager.hasUpdateAvailable ? LocalizedStringKey("view_release_notes") : LocalizedStringKey("check_for_updates")))
-            Spacer(minLength: 8)
-            if manager.hasUpdateAvailable, let downloadURL = manager.latestDownloadZipURL {
+            .help(Text(versionPillHelp))
+            .accessibilityLabel(Text(versionPillHelp))
+            .accessibilityValue(Text(verbatim: versionPillText))
+            .layoutPriority(1)
+            Spacer(minLength: 4)
+            if let downloadURL = manager.availableUpdate?.downloadURL {
                 Button {
                     updatePressed = true
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
@@ -189,12 +163,9 @@ struct ContentView: View {
                         updatePressed = false
                     }
                 } label: {
-                    Image(systemName: "arrow.down.circle.fill")
-                        .font(.system(size: 14, weight: .semibold))
-                        .foregroundColor(.green)
-                        .frame(width: 28, height: 28)
-                        .background(updatePressed ? Color.green.opacity(0.18) : Color.clear)
-                        .cornerRadius(8)
+                    PopoverIcon(symbol: "arrow.down.to.line", tint: palette.success)
+                        .scaleEffect(updatePressed ? 0.94 : 1)
+                        .animation(.easeOut(duration: 0.14), value: updatePressed)
                 }
                 .help(Text(LocalizedStringKey("click_to_download_latest_version")))
                 .buttonStyle(PopButtonStyle())
@@ -209,7 +180,7 @@ struct ContentView: View {
                     guard hovering, manager.hasUpdateAvailable else { return }
 
                     let workItem = DispatchWorkItem {
-                        guard isHoveringUpdateBadge, manager.hasUpdateAvailable else { return }
+                        guard popoverVisibility.isVisible, isHoveringUpdateBadge, manager.hasUpdateAvailable else { return }
 
                         withAnimation(spring) {
                             activePanel = .releaseNotes
@@ -224,12 +195,7 @@ struct ContentView: View {
                     activePanel = activePanel == .settings ? .mainButton : .settings
                 }
             }) {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(activePanel == .settings ? .accentColor : .secondary.opacity(0.6))
-                    .frame(width: 28, height: 28)
-                    .background(activePanel == .settings ? Color.accentColor.opacity(0.15) : Color.clear)
-                    .cornerRadius(8)
+                PopoverIcon(symbol: "gearshape", tint: activePanel == .settings ? palette.accent : nil)
             }
             .buttonStyle(PopButtonStyle())
             .help(Text(LocalizedStringKey("settings")))
@@ -251,12 +217,7 @@ struct ContentView: View {
                     NotificationCenter.default.post(name: .slabPadRequestQuit, object: nil)
                 }
             }) {
-                Image(systemName: "power")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(quitPressed ? .red : .secondary.opacity(0.6))
-                    .frame(width: 28, height: 28)
-                    .background(quitPressed ? Color.red.opacity(0.15) : Color.clear)
-                    .cornerRadius(8)
+                PopoverIcon(symbol: "power", tint: quitPressed ? palette.destructive : nil)
                     .overlay(powerHoldRing)
             }
             .help(Text(LocalizedStringKey("quit")))
@@ -264,9 +225,7 @@ struct ContentView: View {
             .simultaneousGesture(
                 DragGesture(minimumDistance: 0)
                     .onChanged { _ in
-                        if !isPowerPressActive {
-                            beginPowerHold()
-                        }
+                        beginPowerHold()
                     }
                     .onEnded { _ in
                         endPowerHold()
@@ -290,7 +249,7 @@ struct ContentView: View {
             RoundedRectangle(cornerRadius: 11, style: .continuous)
                 .trim(from: 0, to: powerHoldProgress)
                 .stroke(
-                    Color.red.opacity(0.95),
+                    palette.destructive,
                     style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round)
                 )
                 .rotationEffect(.degrees(-90))
@@ -301,93 +260,60 @@ struct ContentView: View {
     }
 
     private func beginPowerHold() {
-        isPowerPressActive = true
-        powerHoldDidStartProgress = false
+        guard powerHoldTask == nil, !resetHoldTriggered else { return }
 
-        cancelPowerHoldWorkItems()
-        powerHoldProgress = 0
-
-        let startWork = DispatchWorkItem {
-            guard isPowerPressActive, !resetHoldTriggered else { return }
-            powerHoldDidStartProgress = true
-            resetCountdownValue = 2
-            
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
-                updateResetToast()
-            }
-
-            if !quitPressed {
+        powerHoldTask = Task { @MainActor in
+            do {
+                try await Task.sleep(nanoseconds: 1_000_000_000)
+                try Task.checkCancellation()
+                resetCountdownValue = 2
                 withAnimation(spring) {
+                    powerHoldDidStartProgress = true
                     quitPressed = true
                 }
-            }
 
-            powerHoldProgress = 0
-            
-            // Continuous progress updates for the toast
-            Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { timer in
-                if !isPowerPressActive || resetHoldTriggered {
-                    timer.invalidate()
-                } else {
-                    powerHoldProgress += 0.05 / 2.0 // Total 2 seconds
-                    updateResetToast()
-                }
-            }
-
-            // Countdown timer
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                guard isPowerPressActive, !resetHoldTriggered else { return }
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) {
+                try await Task.sleep(nanoseconds: 1_000_000_000)
+                try Task.checkCancellation()
+                withAnimation(spring) {
                     resetCountdownValue = 1
                 }
-            }
 
-            let completeWork = DispatchWorkItem {
-                guard isPowerPressActive, !resetHoldTriggered else { return }
+                try await Task.sleep(nanoseconds: 1_000_000_000)
+                try Task.checkCancellation()
                 resetHoldTriggered = true
-                toastManager.hideResetToast()
+                withAnimation(spring) {
+                    powerHoldDidStartProgress = false
+                }
                 NotificationCenter.default.post(name: .slabPadRequestResetAndQuit, object: nil)
+            } catch is CancellationError {
+                // Releasing or closing the popover cancels the reset.
+            } catch {
+                assertionFailure("Unexpected error during reset countdown: \(error)")
             }
-
-            powerHoldCompleteWorkItem = completeWork
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0, execute: completeWork)
         }
-
-        powerHoldStartWorkItem = startWork
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: startWork)
     }
 
     private func endPowerHold() {
-        isPowerPressActive = false
+        guard let powerHoldTask else { return }
+        powerHoldTask.cancel()
+        self.powerHoldTask = nil
 
-        toastManager.hideResetToast()
-
-        cancelPowerHoldWorkItems()
         if powerHoldDidStartProgress && !resetHoldTriggered {
             ignoreNextPowerTap = true
             DispatchQueue.main.async {
-                self.ignoreNextPowerTap = false
+                ignoreNextPowerTap = false
             }
         }
-        powerHoldDidStartProgress = false
 
         if !resetHoldTriggered {
-            withAnimation(.easeOut(duration: 0.12)) {
-                powerHoldProgress = 0
-            }
             withAnimation(spring) {
+                powerHoldDidStartProgress = false
                 quitPressed = false
             }
+            powerHoldProgress = 0
         }
     }
-    
-    private func cancelPowerHoldWorkItems() {
-        powerHoldStartWorkItem?.cancel()
-        powerHoldCompleteWorkItem?.cancel()
-        powerHoldStartWorkItem = nil
-        powerHoldCompleteWorkItem = nil
-    }
-    
+
     private func requestPopoverResize() {
         NotificationCenter.default.post(name: .slabPadPopoverNeedsResize, object: nil)
     }
@@ -407,36 +333,33 @@ struct ContentView: View {
                     .opacity(activePanel == .releaseNotes ? 1 : 0)
                     .allowsHitTesting(activePanel == .releaseNotes)
 
-                pressurePlaygroundSection
-                    .opacity(activePanel == .pressurePlayground ? 1 : 0)
-                    .allowsHitTesting(activePanel == .pressurePlayground)
+                if popoverVisibility.isVisible && activePanel == .pressurePlayground {
+                    pressurePlaygroundSection
+                }
             }
             .fixedSize(horizontal: false, vertical: true)
             .padding(.top, 2)
 
-            if showBottomHint {
+            if showBottomHint && manager.hapticsIssueKey == nil {
                 topHintView
                     .transition(.opacity.combined(with: .move(edge: .bottom)))
             }
         }
         .clipped()
-        .animation(.spring(response: 0.55, dampingFraction: 0.82), value: activePanel)
+        .animation(.easeInOut(duration: 0.20), value: activePanel)
     }
 
     private var topHintView: some View {
         let leftClick: LocalizedStringKey = "hint_left_click_menu_bar"
         let rightClick: LocalizedStringKey = "hint_right_click_menu_bar"
         
-        return ZStack(alignment: .trailing) {
+        return HStack(spacing: 8) {
             Text(manager.invertClicks ? leftClick : rightClick)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundColor(.secondary)
-                .multilineTextAlignment(.leading)
+                .font(.system(size: 11, weight: .medium))
+                .foregroundColor(palette.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-                .padding(.vertical, 10)
-                .padding(.leading, 12)
-                .padding(.trailing, 36)
-                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Spacer(minLength: 0)
 
             Button {
                 withAnimation(.spring(response: 0.35, dampingFraction: 0.8)) {
@@ -444,64 +367,26 @@ struct ContentView: View {
                 }
                 DispatchQueue.main.async { requestPopoverResize() }
             } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundColor(.secondary.opacity(isHoveringBottomHint ? 0.75 : 0.55))
-                    .frame(width: 16, height: 16)
+                PopoverIcon(symbol: "xmark", size: 22)
             }
             .buttonStyle(PopButtonStyle())
             .help(Text(LocalizedStringKey("dismiss")))
-            .padding(10)
         }
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.primary.opacity(0.035))
-                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(Color.primary.opacity(0.08), lineWidth: 1))
-        )
+        .padding(.leading, 12)
+        .padding(.trailing, 7)
+        .padding(.vertical, 7)
+        .background(PopoverSurface(shape: RoundedRectangle(cornerRadius: 12, style: .continuous)))
         .padding(.horizontal, 14)
         .padding(.top, 8)
-        .contentShape(Rectangle())
-        .onHover { hovering in
-            withAnimation(.easeInOut(duration: 0.12)) {
-                isHoveringBottomHint = hovering
-            }
-        }
-    }
-
-    private func updateResetToast() {
-        guard isPowerPressActive || resetHoldTriggered else { return }
-        toastManager.updateResetToast(
-            progress: Double(powerHoldProgress),
-            countdown: resetCountdownValue
-        )
     }
 
     @ViewBuilder
     private func renderToast(_ toast: Toast) -> some View {
         switch toast.type {
-        case .upToDate:
-            upToDateToast
-        case .reset(let progress, let countdown):
-            resetToastView(progress: CGFloat(progress), countdown: countdown)
         case .error(let message):
-            errorToastView(message: message)
-        case .info(let message, let systemImage):
-            infoToastView(message: message, systemImage: systemImage)
+            messageToast(message, symbol: "xmark.circle.fill", color: palette.destructive)
         case .success(let message):
-            successToastView(message: message)
-        }
-    }
-
-    private var upToDateToast: some View {
-        ToastView {
-            HStack(spacing: 8) {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-                    .font(.system(size: 12, weight: .bold))
-                Text(LocalizedStringKey("up_to_date"))
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary.opacity(0.8))
-            }
+            messageToast(message, symbol: "checkmark.circle.fill", color: palette.success)
         }
     }
 
@@ -510,65 +395,47 @@ struct ContentView: View {
             HStack(spacing: 8) {
                 ZStack {
                     Circle()
-                        .stroke(Color.red.opacity(0.2), lineWidth: 2)
+                        .stroke(palette.destructive.opacity(0.25), lineWidth: 2)
                         .frame(width: 20, height: 20)
                     Circle()
                         .trim(from: 0, to: 1.0 - progress)
-                        .stroke(Color.red, style: StrokeStyle(lineWidth: 2, lineCap: .round))
+                        .stroke(palette.destructive, style: StrokeStyle(lineWidth: 2, lineCap: .round))
                         .frame(width: 20, height: 20)
                         .rotationEffect(.degrees(-90))
                     
                     Text("\(countdown)")
                         .font(.system(size: 10, weight: .black, design: .monospaced))
-                        .foregroundColor(.red)
+                        .foregroundColor(palette.destructive)
                 }
                 
                 Text(LocalizedStringKey("keep_holding_to_reset_app_data"))
                     .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary.opacity(0.8))
+                    .foregroundColor(.primary)
+            }
+        }
+        .onAppear {
+            DispatchQueue.main.async {
+                guard powerHoldDidStartProgress else { return }
+                withAnimation(.linear(duration: 2)) {
+                    powerHoldProgress = 1
+                }
             }
         }
     }
 
-    private func errorToastView(message: LocalizedStringKey) -> some View {
+    private func messageToast(_ message: LocalizedStringKey, symbol: String, color: Color) -> some View {
         ToastView {
             HStack(spacing: 8) {
-                Image(systemName: "xmark.circle.fill")
-                    .foregroundColor(.red)
+                Image(systemName: symbol)
+                    .foregroundColor(color)
                     .font(.system(size: 12, weight: .bold))
                 Text(message)
                     .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary.opacity(0.8))
+                    .foregroundColor(.primary)
             }
         }
     }
 
-    private func infoToastView(message: LocalizedStringKey, systemImage: String?) -> some View {
-        ToastView {
-            HStack(spacing: 8) {
-                Image(systemName: systemImage ?? "info.circle.fill")
-                    .foregroundColor(.blue)
-                    .font(.system(size: 12, weight: .bold))
-                Text(message)
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary.opacity(0.8))
-            }
-        }
-    }
-
-    private func successToastView(message: LocalizedStringKey) -> some View {
-        ToastView {
-            HStack(spacing: 8) {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundColor(.green)
-                    .font(.system(size: 12, weight: .bold))
-                Text(message)
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary.opacity(0.8))
-            }
-        }
-    }
-    
     private var settingsSection: some View {
         VStack(alignment: .leading, spacing: 10) {
             SettingsRow(
@@ -577,23 +444,21 @@ struct ContentView: View {
                 isDisabled: !manager.supportsLaunchAtLogin
             )
 
-            Divider().opacity(0.2)
+            panelDivider
 
             SettingsRow(title: LocalizedStringKey("disable_haptics_on_launch"), isOn: $manager.disableOnLaunch)
 
-            Divider().opacity(0.2)
+            panelDivider
 
             SettingsRow(title: LocalizedStringKey("re_enable_haptics_on_quit"), isOn: $manager.reEnableOnQuit)
 
-            Divider().opacity(0.2)
+            panelDivider
 
             SettingsRow(title: LocalizedStringKey("invert_menu_bar_clicks"), isOn: $manager.invertClicks)
         }
         .padding(14)
         .frame(maxWidth: .infinity)
-        .background(Color.primary.opacity(0.05))
-        .cornerRadius(16)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+        .background(PopoverSurface(shape: RoundedRectangle(cornerRadius: 16, style: .continuous)))
         .padding(.horizontal, 14)
         .layoutPriority(1)
     }
@@ -605,7 +470,7 @@ struct ContentView: View {
                     withAnimation(.spring(response: 0.55, dampingFraction: 0.82)) {
                         activePanel = .mainButton
                     }
-                }, isActive: activePanel == .pressurePlayground)
+                })
             } else {
                 Spacer()
                 Text(LocalizedStringKey("pressure_playground_requires_macos_12"))
@@ -617,9 +482,7 @@ struct ContentView: View {
         }
         .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.primary.opacity(0.05))
-        .cornerRadius(16)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+        .background(PopoverSurface(shape: RoundedRectangle(cornerRadius: 16, style: .continuous)))
         .padding(.horizontal, 14)
         .layoutPriority(1)
     }
@@ -630,17 +493,15 @@ struct ContentView: View {
         return VStack(alignment: .leading, spacing: 10) {
             HStack(spacing: 8) {
                 Text(titleLatest)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundColor(.secondary)
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.primary)
                 Spacer(minLength: 8)
 
-                if let url = manager.latestReleaseURL {
+                if let url = manager.availableUpdate?.releaseURL {
                     Button {
                         NSWorkspace.shared.open(url)
                     } label: {
-                        Image(systemName: "safari")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundColor(.secondary.opacity(0.7))
+                        PopoverIcon(symbol: "arrow.up.right", size: 24)
                     }
                     .buttonStyle(PopButtonStyle())
                     .help(Text(LocalizedStringKey("open_on_github")))
@@ -651,98 +512,96 @@ struct ContentView: View {
                         activePanel = .mainButton
                     }
                 } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.secondary.opacity(0.7))
-                        .frame(width: 22, height: 22)
-                        .background(Color.primary.opacity(0.05))
-                        .cornerRadius(6)
+                    PopoverIcon(symbol: "xmark", size: 24)
                 }
                 .buttonStyle(PopButtonStyle())
                 .help(Text(LocalizedStringKey("close")))
             }
 
-            Divider().opacity(0.2)
+            panelDivider
 
             ScrollView {
-                WhatsNewBulletsView(bulletLines: manager.bulletLines, fallbackMarkdown: manager.processedReleaseNotes)
+                WhatsNewBulletsView(
+                    bulletLines: manager.availableUpdate?.notes.bulletLines ?? [],
+                    fallbackMarkdown: manager.availableUpdate?.notes.markdown
+                )
                     .padding(.top, 2)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-        .background(Color.primary.opacity(0.05))
-        .cornerRadius(16)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.primary.opacity(0.1), lineWidth: 1))
+        .background(PopoverSurface(shape: RoundedRectangle(cornerRadius: 16, style: .continuous)))
         .padding(.horizontal, 14)
     }
-    private struct VersionPillLabel: View {
-        let current: String
-        let latest: String
-        let showLatest: Bool
-
-        var body: some View {
-            Group {
-                if showLatest {
-                    pillContent(showLatest: true)
-                        .transition(.opacity)
-                } else {
-                    pillContent(showLatest: false)
-                        .transition(.opacity)
-                }
-            }
-            .animation(.easeInOut(duration: 0.18), value: showLatest)
-        }
-
-        @ViewBuilder
-        private func pillContent(showLatest: Bool) -> some View {
-            HStack(spacing: 4) {
-                Text(current)
-                if showLatest {
-                    HStack(spacing: 4) {
-                        Text("→")
-                        Text(latest)
-                    }
-                }
-            }
-        }
+    private var panelDivider: some View {
+        Rectangle()
+            .fill(Color.primary.opacity(0.11))
+            .frame(height: 1)
     }
-    
+
+    private var versionPillHelp: LocalizedStringKey {
+        if manager.isCheckingForUpdates { return "loading" }
+        return manager.hasUpdateAvailable ? "view_release_notes" : "check_for_updates"
+    }
+
+    private var versionPillText: String {
+        let current = manager.currentVersionText
+        guard shouldShowLatestInVersionPill, let update = manager.availableUpdate else { return current }
+        return "\(current) →\u{00A0}\(update.versionText)"
+    }
+
+    private var versionPill: some View {
+        let tint = activePanel == .releaseNotes ? palette.accent : nil
+        let ink = tint ?? palette.secondary
+
+        let isChecking = manager.isCheckingForUpdates && popoverVisibility.isVisible
+        let isConfirmed = manager.showsUpdateConfirmation && popoverVisibility.isVisible
+        let hasStatus = isChecking || isConfirmed
+        let motion: Animation? = reduceMotion ? nil : .easeInOut(duration: 0.18)
+
+        return HStack(spacing: 0) {
+            ZStack {
+                if isChecking {
+                    UpdateSpinner(color: ink)
+                        .transition(.opacity)
+                }
+
+                Image(systemName: "checkmark")
+                    .foregroundColor(palette.success)
+                    .opacity(isConfirmed && !isChecking ? 1 : 0)
+            }
+            .frame(width: 10, height: 10)
+            .offset(x: hasStatus ? 0 : -5)
+            .frame(width: hasStatus ? 15 : 0, alignment: .leading)
+            .clipped()
+            .accessibilityHidden(true)
+
+            Text(verbatim: versionPillText)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .font(.system(size: 10, weight: .semibold, design: .monospaced))
+        .foregroundColor(ink)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 2)
+        .frame(minHeight: 20)
+        .background(PopoverSurface(shape: Capsule(), tint: tint))
+        .animation(motion, value: shouldShowLatestInVersionPill)
+        .animation(motion, value: isChecking)
+        .animation(motion, value: isConfirmed)
+    }
+
     private var mainButtonSection: some View {
-        hapticsToggleButton
-            .overlay(
-                hapticsStatusBanners
-                    .padding(.horizontal, 10)
-                    .padding(.bottom, 10),
-                alignment: .bottom
-            )
-        .padding(.horizontal, 14)
-    }
-
-    @ViewBuilder
-    private var hapticsStatusBanners: some View {
-        VStack(spacing: 6) {
-            if manager.isFocusActive {
-                stateBanner(
-                    icon: "moon.stars.fill",
-                    title: LocalizedStringKey("focus_controls_haptics_title"),
-                    message: LocalizedStringKey("focus_controls_haptics_message"),
-                    color: .accentColor
-                )
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-
+        Group {
             if let issueKey = manager.hapticsIssueKey {
-                stateBanner(
-                    icon: "exclamationmark.triangle.fill",
-                    title: LocalizedStringKey("haptics_unavailable_title"),
-                    message: LocalizedStringKey(issueKey),
-                    color: .orange
-                )
-                .transition(.opacity.combined(with: .move(edge: .top)))
+                hapticsUnavailableTile(issueKey)
+            } else {
+                hapticsToggleButton
             }
         }
+        .padding(.horizontal, 14)
     }
 
     private var hapticsToggleButton: some View {
@@ -751,102 +610,110 @@ struct ContentView: View {
                 manager.toggleHapticsEnabled()
             }
         }) {
+            let willEnableHaptics = manager.nextHapticsEnabled
             ZStack {
-                buttonBackground(isEnabled: manager.isHapticsEnabled, isFocusActive: manager.isFocusActive)
-                    .shadow(color: .black.opacity(0.12), radius: 8, y: 4)
+                buttonBackground(isEnabled: !willEnableHaptics, isFocusActive: manager.isFocusActive)
+                    .shadow(color: .black.opacity(manager.isFocusActive ? 0 : 0.13), radius: 7, y: 3)
 
                 HStack {
                     Image(systemName: manager.isFocusActive ? "moon.stars.fill" : "power")
                     let disableHaptics: LocalizedStringKey = "disable_haptics_button"
                     let enableHaptics: LocalizedStringKey = "enable_haptics_button"
                     let focusActive: LocalizedStringKey = "focus_active"
-                    Text(manager.isFocusActive ? focusActive : (manager.isHapticsEnabled ? disableHaptics : enableHaptics))
+                    Text(manager.isFocusActive ? focusActive : (willEnableHaptics ? enableHaptics : disableHaptics))
                 }
                 .font(.headline)
-                .foregroundColor(manager.isFocusActive ? .secondary : .white)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, 12)
+                .foregroundColor(manager.isFocusActive ? palette.accent : .white)
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            // 3D & GLIMMER EFFECT ON BIG HAPTICS BUTTON!!!
-            .modifier(FloatingPerspectiveModifier())
+            .frame(maxWidth: .infinity, minHeight: 105, maxHeight: .infinity)
+            .modifier(FloatingPerspectiveModifier(isEnabled: !manager.isFocusActive))
             .animation(.easeInOut(duration: 0.18), value: manager.isHapticsEnabled)
         }
-        .buttonStyle(HapticButtonStyle())
+        .buttonStyle(PopButtonStyle(pressedScale: 0.95, dampingFraction: 0.55))
         .disabled(manager.isFocusActive)
     }
 
-    private func stateBanner(
-        icon: String,
-        title: LocalizedStringKey,
-        message: LocalizedStringKey,
-        color: Color
-    ) -> some View {
-        HStack(alignment: .top, spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 11, weight: .bold))
-                .foregroundColor(color)
-                .frame(width: 16, height: 16)
+    private func hapticsUnavailableTile(_ issueKey: String) -> some View {
+        let title = Text("haptics_unavailable_title")
+        let reason = Text(LocalizedStringKey(issueKey))
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-                    .foregroundColor(.primary.opacity(0.82))
-                Text(message)
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Spacer(minLength: 0)
+        return HStack(spacing: 8) {
+            Image(systemName: "exclamationmark.triangle.fill")
+            title
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
-        .padding(.vertical, 9)
-        .padding(.horizontal, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(color.opacity(0.09))
-                .overlay(RoundedRectangle(cornerRadius: 12, style: .continuous).stroke(color.opacity(0.18), lineWidth: 0.5))
-        )
+        .font(.headline)
+        .foregroundColor(palette.secondary)
+        .padding(.horizontal, 16)
+        .frame(maxWidth: .infinity, minHeight: 105, maxHeight: .infinity)
+        .background(PopoverSurface(shape: RoundedRectangle(cornerRadius: 16, style: .continuous)))
+        .help(reason)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityHint(reason)
     }
-    
+
     @ViewBuilder
     private func buttonBackground(isEnabled: Bool, isFocusActive: Bool) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 16, style: .continuous)
         if isFocusActive {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .strokeBorder(style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round, dash: [5, 5]))
-                .foregroundColor(.secondary.opacity(0.4))
-                .background(RoundedRectangle(cornerRadius: 16, style: .continuous).fill(Color.primary.opacity(0.02)))
-        } else if #available(macOS 13.0, *) {
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(isEnabled ? Color.red.gradient : Color.accentColor.gradient)
-                .animation(.easeInOut(duration: 0.18), value: isEnabled)
+            PopoverSurface(shape: shape, tint: palette.accent)
         } else {
-            let base = isEnabled ? Color.red : Color.accentColor
-            RoundedRectangle(cornerRadius: 16, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [base.opacity(0.9), base],
-                        startPoint: .top,
-                        endPoint: .bottom
+            shape
+                .fill(palette.actionFill(hapticsEnabled: isEnabled))
+                .overlay(
+                    shape.fill(
+                        LinearGradient(
+                            colors: [.white.opacity(0.10), .clear, .black.opacity(0.22)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
                     )
                 )
+                .overlay(shape.strokeBorder(.white.opacity(0.20), lineWidth: 1))
                 .animation(.easeInOut(duration: 0.18), value: isEnabled)
         }
     }
 }
 
-struct HapticButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .animation(.spring(response: 0.25, dampingFraction: 0.55), value: configuration.isPressed)
+private struct UpdateSpinner: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var isSpinning = false
+
+    let color: Color
+
+    var body: some View {
+        Circle()
+            .strokeBorder(color.opacity(0.22), lineWidth: 1.25)
+            .overlay(
+                Circle()
+                    .trim(from: 0, to: 0.68)
+                    .stroke(color, style: StrokeStyle(lineWidth: 1.25, lineCap: .round))
+                    .padding(0.65)
+                    .rotationEffect(.degrees(isSpinning && !reduceMotion ? 270 : -90))
+                    .animation(
+                        reduceMotion ? nil : .linear(duration: 0.85).repeatForever(autoreverses: false),
+                        value: isSpinning
+                    )
+            )
+            .frame(width: 10, height: 10)
+            .accessibilityHidden(true)
+            .onAppear { isSpinning = !reduceMotion }
+            .onChange(of: reduceMotion) { isSpinning = !$0 }
     }
 }
 
 struct PopButtonStyle: ButtonStyle {
+    var pressedScale: CGFloat = 0.9
+    var dampingFraction: Double = 0.5
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.9 : 1.0)
-            .animation(.spring(response: 0.25, dampingFraction: 0.5), value: configuration.isPressed)
+            .scaleEffect(configuration.isPressed ? pressedScale : 1)
+            .animation(.spring(response: 0.25, dampingFraction: dampingFraction), value: configuration.isPressed)
     }
 }
 
@@ -858,9 +725,12 @@ private struct ViewSizePreferenceKey: PreferenceKey {
 }
 
 private struct FloatingPerspectiveModifier: ViewModifier {
-    var cornerRadius: CGFloat = 12
-    var maxTilt: Double = 10
-    var shineMaxOpacity: Double = 0.14
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    let isEnabled: Bool
+    var cornerRadius: CGFloat = 16
+    var maxTilt: Double = 7
+    var shineMaxOpacity: Double = 0.10
     var shineTravel: CGFloat = 150
     var perspective: CGFloat = 0.2
 
@@ -870,7 +740,7 @@ private struct FloatingPerspectiveModifier: ViewModifier {
     @State private var shineOpacity: Double = 0
 
     func body(content: Content) -> some View {
-        if #available(macOS 13.0, *) {
+        if #available(macOS 13.0, *), isEnabled && !reduceMotion {
             content
                 .overlay(
                     GeometryReader { geo in
@@ -942,11 +812,15 @@ private struct SettingsRow: View {
 
     var body: some View {
         HStack(alignment: .center) {
-            Text(title).font(.system(size: 13, weight: .semibold))
+            Text(title)
+                .font(.system(size: 13, weight: .semibold))
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityHidden(true)
             Spacer(minLength: 12)
             Toggle("", isOn: $isOn)
                 .toggleStyle(.switch)
                 .labelsHidden()
+                .accessibilityLabel(Text(title))
         }
         .disabled(isDisabled)
         .opacity(isDisabled ? 0.6 : 1.0)
@@ -1015,26 +889,23 @@ private struct WhatsNewBulletsView: View {
     }
 }
 
-struct VisualEffectView: NSViewRepresentable {
-    let material: NSVisualEffectView.Material
-    let blendingMode: NSVisualEffectView.BlendingMode
+private struct ToastBackdrop: NSViewRepresentable {
     func makeNSView(context: Context) -> NSVisualEffectView {
         let view = NSVisualEffectView()
-        view.material = material
-        view.blendingMode = blendingMode
+        view.material = .popover
+        view.blendingMode = .withinWindow
         view.state = .active
         return view
     }
-    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {
-        nsView.material = material
-        nsView.blendingMode = blendingMode
-    }
+    func updateNSView(_ nsView: NSVisualEffectView, context: Context) {}
 }
 
 #if DEBUG
 struct ContentView_Previews: PreviewProvider {
     static var previews: some View {
-        ContentView()
+        let visibility = PopoverVisibility()
+        visibility.isVisible = true
+        return ContentView(popoverVisibility: visibility)
     }
 }
 #endif

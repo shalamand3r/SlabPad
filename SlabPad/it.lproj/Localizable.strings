@@ -1,6 +1,6 @@
 // Settings
-"launch_at_login" = "Avvia al login";
-"launch_at_login_macos13" = "Avvia al login (macOS 13+)";
+"launch_at_login" = "Apri al login";
+"launch_at_login_macos13" = "Apri al login (macOS 13+)";
 "disable_haptics_on_launch" = "Disabilita feedback aptico all'avvio";
 "re_enable_haptics_on_quit" = "Riabilita feedback aptico alla chiusura";
 "invert_menu_bar_clicks" = "Inverti clic nella barra dei menu";
@@ -14,30 +14,26 @@
 "whats_new" = "Novità";
 "open_on_github" = "Apri su GitHub";
 "close" = "Chiudi";
-"disable_haptics_button" = "DISABILITA FEEDBACK APTICO";
-"enable_haptics_button" = "ABILITA FEEDBACK APTICO";
-"loading" = "Caricamento...";
-"keep_holding_to_reset_app_data" = "Tieni premuto per ripristinare i dati dell'app...";
-"up_to_date" = "SlabPad è aggiornato!";
-"error" = "Errore";
-"update_check_failed" = "Controllo aggiornamenti fallito";
-"view_pressure_playground" = "Visualizza Pressure Playground";
+"disable_haptics_button" = "DISATTIVA FEEDBACK APTICO";
+"enable_haptics_button" = "ATTIVA FEEDBACK APTICO";
+"loading" = "Caricamento…";
+"keep_holding_to_reset_app_data" = "Continua a tenere premuto per reimpostare SlabPad…";
+"update_check_failed" = "Impossibile verificare la presenza di aggiornamenti";
+"view_pressure_playground" = "Apri il test di pressione";
 "dismiss" = "Ignora";
-"focus_active" = "FOCUS ATTIVO";
+"focus_active" = "FULL IMMERSION ATTIVA";
 "view_release_notes" = "Visualizza note di rilascio";
 "check_for_updates" = "Verifica aggiornamenti";
-"focus_controls_haptics_title" = "Focus controlla l’aptica";
-"focus_controls_haptics_message" = "Questa modalità Focus mantiene silenziosa l’aptica del trackpad.";
 "haptics_unavailable_title" = "Aptica del trackpad non disponibile";
 "haptics_framework_unavailable" = "MultitouchSupport non è disponibile su questo Mac.";
 "haptics_private_api_unavailable" = "Impossibile caricare l’API aptica del trackpad.";
-"haptics_trackpad_unavailable" = "Nessun trackpad Force Touch integrato trovato.";
-"haptics_actuator_unavailable" = "Questo trackpad non espone un attuatore aptico.";
+"haptics_trackpad_unavailable" = "SlabPad non è riuscito a connettersi al trackpad Force Touch integrato.";
+"haptics_actuator_unavailable" = "Questo trackpad non supporta il feedback aptico.";
 "haptics_set_failed" = "macOS non ha mantenuto lo stato aptico richiesto.";
 "haptics_state_read_failed" = "SlabPad non ha potuto verificare lo stato aptico.";
 
 // PressurePlayground.swift
-"pressure_playground_requires_macos_12" = "Pressure Playground richiede macOS 12.0+";
+"pressure_playground_requires_macos_12" = "Il test di pressione richiede macOS 12 o versioni successive.";
 "close_playground" = "Chiudi Playground";
 
 // FocusFilter.swift (macOS Focus Filter UI)
@@ -46,3 +42,4 @@
 "focus_filter_param_silence" = "Disattiva feedback aptico";
 "focus_filter_subtitle_on" = "Feedback aptico disattivato";
 "focus_filter_subtitle_off" = "Feedback aptico attivato";
+"focus_filter_summary ${silenceHaptics}" = "Disattiva feedback aptico: ${silenceHaptics}";

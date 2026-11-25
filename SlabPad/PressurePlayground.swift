@@ -5,26 +5,40 @@ import SwiftUI
 import AppKit
 
 private struct Shockwave {
-    var progress: CGFloat
-    var center: CGPoint
+    static let duration: TimeInterval = 1.25
+
+    let center: CGPoint
+    let start: Date
+}
+
+private struct ShockwaveRing {
+    let center: CGPoint
+    let radius: CGFloat
+    let amplitude: CGFloat
+
+    func strength(atDistance distance: CGFloat) -> CGFloat {
+        let distanceFromRing = abs(distance - radius)
+        guard distanceFromRing < 40 else { return 0 }
+        return cos(distanceFromRing / 40 * .pi / 2) * amplitude
+    }
 }
 
 private final class RenderState {
     var currentLoc: CGPoint = CGPoint(x: 150, y: 50)
     var currentPres: CGFloat = 0
     var shockwaves: [Shockwave] = []
-    var lastTime: TimeInterval = 0
-    private var cachedSize: CGSize = .zero
-    private var cachedSpacing: CGFloat = 0
+    var lastFrame: Date?
+    var animationEnd = Date.distantPast
+    private var cachedSize: CGSize?
     private var cachedGridPoints: [[CGPoint]] = []
 
-    func gridPoints(for size: CGSize, spacing: CGFloat) -> [[CGPoint]] {
-        guard cachedSize != size || cachedSpacing != spacing || cachedGridPoints.isEmpty else {
+    func gridPoints(for size: CGSize) -> [[CGPoint]] {
+        guard cachedSize != size else {
             return cachedGridPoints
         }
 
         cachedSize = size
-        cachedSpacing = spacing
+        let spacing: CGFloat = 14
         cachedGridPoints = stride(from: -spacing, through: size.height + spacing, by: spacing).map { y in
             stride(from: -spacing, through: size.width + spacing, by: spacing).map { x in
                 CGPoint(x: x, y: y)
@@ -36,216 +50,201 @@ private final class RenderState {
 
 @available(macOS 12.0, *)
 struct PressurePlayground: View {
-    @ObservedObject private var manager = SlabPadManager.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.colorScheme) private var appearance
     @State private var pressure: CGFloat = 0
-    @State private var location: CGPoint = CGPoint(x: 150, y: 50)
-    @State private var isHovering: Bool = false
+    @State private var location: CGPoint?
+    @State private var settleTask: Task<Void, Never>?
     @State private var renderState = RenderState()
-    
+
     let onExit: () -> Void
-    var isActive: Bool = true
+
+    private var isAnimating: Bool { settleTask != nil }
 
     var body: some View {
         ZStack {
-            PressureSensitiveArea { loc, pres, didForceClick in
-                if let loc = loc {
-                    self.location = loc
-                    self.isHovering = true
-                } else {
-                    self.isHovering = false
-                }
-                
-                if didForceClick && manager.isHapticsEnabled {
-                    renderState.shockwaves.append(Shockwave(progress: 0.0, center: renderState.currentLoc))
-                }
-                
-                self.pressure = pres
-            }
+            PressureSensitiveArea(onPressureUpdate: updatePressure)
 
-            if isActive {
-                TimelineView(.animation) { (timeline: TimelineViewDefaultContext) in
-                    Canvas { context, size in
-                        let now = timeline.date.timeIntervalSinceReferenceDate
-                        let dt = renderState.lastTime == 0 ? 0 : now - renderState.lastTime
-                        renderState.lastTime = now
-
-                        func smoothFactor(_ speed: CGFloat) -> CGFloat {
-                            CGFloat(1.0 - exp(-dt * Double(speed)))
-                        }
-                        
-                        var targetLoc = location
-                        var targetPres = pressure
-                        
-                        if !isHovering && !reduceMotion {
-                            // idle sway
-                            let swayX = size.width / 2 + CGFloat(cos(now * 0.7)) * 50
-                            let swayY = size.height / 2 + CGFloat(sin(now * 1.1)) * 25
-                            targetLoc = CGPoint(x: swayX, y: swayY)
-                            targetPres = 0.08
-                        } else if !isHovering {
-                            targetLoc = CGPoint(x: size.width / 2, y: size.height / 2)
-                            targetPres = 0
-                        }
-                        
-                        // smooth crawl interpolation
-                        let lerpSpeed: CGFloat = isHovering ? 12.0 : 4.0
-                        let presLerpSpeed: CGFloat = isHovering ? 8.0 : 4.0
-                        let lerpFactor = smoothFactor(lerpSpeed)
-                        let presLerpFactor = smoothFactor(presLerpSpeed)
-                        
-                        renderState.currentLoc.x += (targetLoc.x - renderState.currentLoc.x) * lerpFactor
-                        renderState.currentLoc.y += (targetLoc.y - renderState.currentLoc.y) * lerpFactor
-                        renderState.currentPres += (targetPres - renderState.currentPres) * presLerpFactor
-                        
-                        if reduceMotion {
-                            renderState.shockwaves.removeAll()
-                        } else {
-                            let shockwaveProgressSpeed: CGFloat = 0.8
-                            for i in 0..<renderState.shockwaves.count {
-                                renderState.shockwaves[i].progress += CGFloat(dt) * shockwaveProgressSpeed
-                            }
-                            renderState.shockwaves.removeAll { $0.progress >= 1.0 }
-                        }
-                        
-                        let drawLoc = renderState.currentLoc
-                        let drawPres = renderState.currentPres
-                        let gridSpacing: CGFloat = 14
-                        let t = now
-                        let originalGridPoints = renderState.gridPoints(for: size, spacing: gridSpacing)
-
-                        let shockwaveRadiusScale: CGFloat = 400.0
-                        let ringWidth: CGFloat = 40.0
-                        let rippleSpeed = 2.0
-                        
-                        let baseStrength: CGFloat = 8
-                        let maxStrength: CGFloat = baseStrength + (40 * drawPres)
-                        let influenceRadius: CGFloat = 60 + (drawPres * 60)
-                        
-                        var gridPoints: [[CGPoint]] = []
-                        
-                        for originalRow in originalGridPoints {
-                            var row: [CGPoint] = []
-                            for originalPoint in originalRow {
-                                let dx = originalPoint.x - drawLoc.x
-                                let dy = originalPoint.y - drawLoc.y
-                                let dist = sqrt(dx*dx + dy*dy)
-                                
-                                let rippleBase = reduceMotion ? 0 : CGFloat(sin(Double(dist) * 0.04 - t * Double(rippleSpeed))) * (1.0 + drawPres * 2.0)
-
-                                let rippleStabilityFactor = min(dist / 30.0, 1.0)
-                                let ripple = rippleBase * rippleStabilityFactor
-
-                                let warp = CGFloat(exp(-Double(dist * dist) / Double(2.0 * influenceRadius * influenceRadius)))
-
-                                var displacedX = originalPoint.x - (dx * warp * maxStrength / 50.0)
-                                var displacedY = originalPoint.y - (dy * warp * maxStrength / 50.0)
-                                
-                                for shockwave in renderState.shockwaves {
-                                    let swDx = originalPoint.x - shockwave.center.x
-                                    let swDy = originalPoint.y - shockwave.center.y
-                                    let swDist = sqrt(swDx*swDx + swDy*swDy)
-                                    
-                                    let shockwaveRadius = shockwave.progress * shockwaveRadiusScale
-                                    let shockwaveIntensity = 1.0 - shockwave.progress
-                                    
-                                    let distFromRing = abs(swDist - shockwaveRadius)
-                                    if distFromRing < ringWidth {
-                                        let swWarp = CGFloat(cos((distFromRing / ringWidth) * .pi / 2)) * shockwaveIntensity * 20.0
-                                        let angle = atan2(swDy, swDx)
-                                        displacedX += cos(angle) * swWarp
-                                        displacedY += sin(angle) * swWarp
-                                    }
-                                }
-
-                                row.append(CGPoint(x: displacedX, y: displacedY + ripple * warp))
-                            }
-                            gridPoints.append(row)
-                        }
-                        
-                        for yIndex in 0..<gridPoints.count {
-                            for xIndex in 0..<gridPoints[yIndex].count {
-                                let p = gridPoints[yIndex][xIndex]
-                                
-                                func drawLine(to nextP: CGPoint) {
-                                    var path = Path()
-                                    path.move(to: p)
-                                    path.addLine(to: nextP)
-                                    
-                                    let dist = sqrt(pow(p.x - drawLoc.x, 2) + pow(p.y - drawLoc.y, 2))
-                                    let intensity = CGFloat(exp(-Double(dist * dist) / Double(2.0 * influenceRadius * influenceRadius)))
-                                    
-                                    var swHighlight: CGFloat = 0
-                                    for shockwave in renderState.shockwaves {
-                                        let swDx = p.x - shockwave.center.x
-                                        let swDy = p.y - shockwave.center.y
-                                        let swDist = sqrt(swDx*swDx + swDy*swDy)
-                                        
-                                        let shockwaveRadius = shockwave.progress * shockwaveRadiusScale
-                                        let shockwaveIntensity = 1.0 - shockwave.progress
-                                        
-                                        let distFromRing = abs(swDist - shockwaveRadius)
-                                        if distFromRing < ringWidth {
-                                            swHighlight += CGFloat(cos((distFromRing / ringWidth) * .pi / 2)) * shockwaveIntensity
-                                        }
-                                    }
-                                    
-                                    let style = StrokeStyle(lineWidth: 0.3 + intensity * 1.7 + swHighlight * 2.0, lineCap: .round, lineJoin: .round)
-                                    let alpha = (0.08 + intensity * 0.45) + swHighlight * 0.5
-                                    let color = Color(nsColor: .controlAccentColor)
-
-                                    context.stroke(path, with: .color(color.opacity(alpha)), style: style)
-                                }
-                                
-                                if xIndex < gridPoints[yIndex].count - 1 {
-                                    drawLine(to: gridPoints[yIndex][xIndex + 1])
-                                }
-                                
-                                if yIndex < gridPoints.count - 1 {
-                                    drawLine(to: gridPoints[yIndex + 1][xIndex])
-                                }
-                            }
-                        }
-                    }
-                }
+            grid
                 .allowsHitTesting(false)
-                .drawingGroup()
-            }
 
             ZStack {
                 Button(action: onExit) {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 11, weight: .bold))
-                        .foregroundColor(.secondary.opacity(0.7))
-                        .frame(width: 22, height: 22)
-                        .background(Color.primary.opacity(0.05))
-                        .cornerRadius(6)
+                    PopoverIcon(symbol: "xmark", size: 24)
                 }
                 .buttonStyle(PopButtonStyle())
                 .help(Text(LocalizedStringKey("close_playground")))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
                 
                 // pressure meter
-                Text("\(Int(pressure * 100))%")
+                Text(Double(pressure), format: .percent.precision(.fractionLength(0)).rounded(rule: .down))
                     .font(.system(size: 11, weight: .bold, design: .monospaced))
-                    .foregroundColor(.secondary.opacity(0.7))
+                    .foregroundColor(.secondary)
                     .padding(.horizontal, 6)
                     .padding(.vertical, 3)
-                    .background(
-                        Capsule()
-                            .fill(Color.primary.opacity(0.05))
-                            .overlay(Capsule().stroke(Color.primary.opacity(0.1), lineWidth: 0.5))
-                    )
+                    .background(PopoverSurface(shape: Capsule()))
                     .opacity(pressure > 0 ? 1 : 0)
                     .animation(.easeInOut(duration: 0.2), value: pressure > 0)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .onChange(of: reduceMotion) { enabled in
+            if enabled { stopAnimation() }
+        }
+        .onDisappear(perform: stopAnimation)
+    }
+
+    @ViewBuilder
+    private var grid: some View {
+        let lineColor = PopoverPalette(scheme: appearance).accent
+        if !reduceMotion && (isAnimating || location == nil) {
+            let frameInterval: TimeInterval? = isAnimating ? nil : 1.0 / 24
+            TimelineView(.animation(minimumInterval: frameInterval)) { (timeline: TimelineViewDefaultContext) in
+                Canvas { context, size in
+                    drawGrid(in: context, size: size, at: timeline.date, animate: true, color: lineColor)
+                }
+            }
+        } else {
+            Canvas { context, size in
+                drawGrid(in: context, size: size, at: Date(), animate: false, color: lineColor)
+            }
+        }
+    }
+
+    private func updatePressure(location: CGPoint?, pressure: CGFloat, didForceClick: Bool) {
+        guard location != self.location || pressure != self.pressure || didForceClick else { return }
+        self.location = location
+        self.pressure = pressure
+
+        guard !reduceMotion else { return }
+        let now = Date()
+        let showShockwave = didForceClick && SlabPadManager.shared.isHapticsEnabled == true
+        if showShockwave, let location {
+            renderState.shockwaves.append(Shockwave(center: location, start: now))
+        }
+        let duration = showShockwave ? Shockwave.duration : 0.8
+        renderState.animationEnd = max(renderState.animationEnd, now.addingTimeInterval(duration))
+
+        guard settleTask == nil else { return }
+        renderState.lastFrame = now
+        settleTask = Task { @MainActor in
+            // Fresh input extends the deadline while this task sleeps.
+            while !Task.isCancelled {
+                let remaining = renderState.animationEnd.timeIntervalSinceNow
+                guard remaining > 0 else {
+                    settleTask = nil
+                    return
+                }
+                let delay = min(remaining, Shockwave.duration)
+                try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            }
+        }
+    }
+
+    private func stopAnimation() {
+        settleTask?.cancel()
+        settleTask = nil
+        renderState.lastFrame = nil
+        renderState.animationEnd = .distantPast
+        renderState.shockwaves.removeAll()
+    }
+
+    private func drawGrid(in context: GraphicsContext, size: CGSize, at date: Date, animate: Bool, color: Color) {
+        let time = date.timeIntervalSinceReferenceDate
+        let isFloating = animate && location == nil
+        var target = location ?? CGPoint(x: size.width / 2, y: size.height / 2)
+        if isFloating {
+            target.x += cos(time * 0.7) * 50
+            target.y += sin(time * 1.1) * 25
+        }
+        let targetPressure: CGFloat = isFloating ? 0.08 : pressure
+        let elapsed = min(max(date.timeIntervalSince(renderState.lastFrame ?? date), 0), 0.1)
+        renderState.lastFrame = animate ? date : nil
+
+        let locationFactor = animate ? 1 - exp(-elapsed * (isFloating ? 4 : 12)) : 1
+        let pressureFactor = animate ? 1 - exp(-elapsed * (isFloating ? 4 : 8)) : 1
+        renderState.currentLoc.x += (target.x - renderState.currentLoc.x) * locationFactor
+        renderState.currentLoc.y += (target.y - renderState.currentLoc.y) * locationFactor
+        renderState.currentPres += (targetPressure - renderState.currentPres) * pressureFactor
+
+        renderState.shockwaves.removeAll { date.timeIntervalSince($0.start) >= Shockwave.duration }
+        let rings = renderState.shockwaves.map { wave in
+            let progress = max(date.timeIntervalSince(wave.start), 0) / Shockwave.duration
+            return ShockwaveRing(center: wave.center, radius: progress * 400, amplitude: 1 - progress)
+        }
+
+        let center = renderState.currentLoc
+        let pressure = renderState.currentPres
+        let radius = 60 + pressure * 60
+        let falloff = 2 * radius * radius
+        let strength = (8 + 40 * pressure) / 50
+        let remaining = date.distance(to: renderState.animationEnd)
+        let rippleAmplitude: CGFloat = isFloating ? 1 : CGFloat(min(max(remaining / 0.25, 0), 1))
+        let ripplePhase = CGFloat(time * 2)
+
+        let points = renderState.gridPoints(for: size).map { row in
+            row.map { point in
+                let dx = point.x - center.x
+                let dy = point.y - center.y
+                let distanceSquared = dx * dx + dy * dy
+                let warp = exp(-distanceSquared / falloff)
+                var x = point.x - dx * warp * strength
+                var y = point.y - dy * warp * strength
+
+                if animate && rippleAmplitude > 0 {
+                    let distance = sqrt(distanceSquared)
+                    let ripple = sin(distance * 0.04 - ripplePhase) * (1 + pressure * 2)
+                    y += ripple * min(distance / 30, 1) * rippleAmplitude * warp
+                }
+
+                for ring in rings {
+                    let ringDX = point.x - ring.center.x
+                    let ringDY = point.y - ring.center.y
+                    let distance = sqrt(ringDX * ringDX + ringDY * ringDY)
+                    let displacement = ring.strength(atDistance: distance) * 20
+                    if distance > 0 {
+                        x += ringDX / distance * displacement
+                        y += ringDY / distance * displacement
+                    }
+                }
+
+                return CGPoint(x: x, y: y)
+            }
+        }
+
+        for y in points.indices {
+            for x in points[y].indices {
+                let point = points[y][x]
+                var path = Path()
+                if x + 1 < points[y].count {
+                    path.move(to: point)
+                    path.addLine(to: points[y][x + 1])
+                }
+                if y + 1 < points.count {
+                    path.move(to: point)
+                    path.addLine(to: points[y + 1][x])
+                }
+                guard !path.isEmpty else { continue }
+
+                let dx = point.x - center.x
+                let dy = point.y - center.y
+                let distanceSquared = dx * dx + dy * dy
+                let intensity: CGFloat = exp(-distanceSquared / falloff)
+                let highlight = rings.reduce(CGFloat.zero) { sum, ring in
+                    let ringDX = point.x - ring.center.x
+                    let ringDY = point.y - ring.center.y
+                    return sum + ring.strength(atDistance: sqrt(ringDX * ringDX + ringDY * ringDY))
+                }
+                let alpha = 0.08 + intensity * 0.45 + highlight * 0.5
+                let style = StrokeStyle(lineWidth: 0.3 + intensity * 1.7 + highlight * 2, lineCap: .round)
+                context.stroke(path, with: .color(color.opacity(alpha)), style: style)
+            }
+        }
     }
 }
 
-struct PressureSensitiveArea: NSViewRepresentable {
+private struct PressureSensitiveArea: NSViewRepresentable {
     var onPressureUpdate: (CGPoint?, CGFloat, Bool) -> Void
 
     func makeNSView(context: Context) -> PressureNSView {
@@ -259,7 +258,7 @@ struct PressureSensitiveArea: NSViewRepresentable {
     }
 }
 
-class PressureNSView: NSView {
+private final class PressureNSView: NSView {
     override var isFlipped: Bool { true }
     
     var onPressureUpdate: ((CGPoint?, CGFloat, Bool) -> Void)?
@@ -319,11 +318,7 @@ class PressureNSView: NSView {
     override func pressureChange(with event: NSEvent) {
         let stage = event.stage
         let stagePressure = CGFloat(event.pressure)
-        var didJustForceClick = false
-        
-        if stage == 2 && lastStage < 2 {
-            didJustForceClick = true
-        }
+        let didJustForceClick = stage == 2 && lastStage < 2
         lastStage = stage
         
         if stage == 1 {

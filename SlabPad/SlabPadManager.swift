@@ -8,23 +8,23 @@ import os
 import Foundation
 import AppIntents
 
-private struct SemVer: Comparable {
+private struct ReleaseVersion {
     let parts: [Int]
 
     init?(_ rawValue: String) {
         let trimmed = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
         let cleaned = trimmed.hasPrefix("v") ? String(trimmed.dropFirst()) : trimmed
         let components = cleaned.split(separator: ".")
-        guard !components.isEmpty, components.allSatisfy({ Int($0) != nil }) else { return nil }
-        self.parts = components.map { Int($0)! }
+        let numbers = components.compactMap { Int($0) }
+        guard !components.isEmpty, numbers.count == components.count else { return nil }
+        parts = numbers
     }
 
-    static func < (lhs: SemVer, rhs: SemVer) -> Bool {
-        let maxCount = max(lhs.parts.count, rhs.parts.count)
-        for index in 0..<maxCount {
-            let left = index < lhs.parts.count ? lhs.parts[index] : 0
-            let right = index < rhs.parts.count ? rhs.parts[index] : 0
-            if left != right { return left < right }
+    func isNewer(than version: ReleaseVersion) -> Bool {
+        for index in 0..<max(parts.count, version.parts.count) {
+            let latest = index < parts.count ? parts[index] : 0
+            let installed = index < version.parts.count ? version.parts[index] : 0
+            if latest != installed { return latest > installed }
         }
         return false
     }
@@ -46,87 +46,94 @@ private struct GitHubAPIError: Decodable, Sendable {
     let message: String
 }
 
+private struct UpdateCheckError: LocalizedError {
+    let message: String
+
+    var errorDescription: String? { message }
+}
+
+struct AvailableUpdate {
+    let versionText: String
+    let releaseURL: URL
+    let downloadURL: URL?
+    let notes: ReleaseNotes
+}
+
+struct ReleaseNotes {
+    private static let changelogHeading = try? NSRegularExpression(
+        pattern: #"^\s*#{2,6}\s*(changelog|what's new|whats new)\s*:?\s*$"#,
+        options: [.caseInsensitive]
+    )
+
+    let markdown: String
+    let bulletLines: [String]
+
+    init(_ body: String) {
+        let normalized = body
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+        let lines = normalized.components(separatedBy: .newlines)
+        let heading = Self.changelogHeading.flatMap { regex in
+            lines.firstIndex { line in
+                regex.firstMatch(in: line, range: NSRange(line.startIndex..<line.endIndex, in: line)) != nil
+            }
+        }
+        let changelog = heading.map { index in
+            lines.dropFirst(index + 1).prefix { line in
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                return trimmed != "---" && !trimmed.hasPrefix("### ")
+            }
+        }
+        let noteLines = changelog ?? lines[...]
+        markdown = noteLines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        bulletLines = noteLines.compactMap { line in
+            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") || trimmed.hasPrefix("• ") else {
+                return nil
+            }
+            return String(trimmed.dropFirst(2))
+        }
+    }
+}
+
 @MainActor
 final class SlabPadManager: ObservableObject {
     static let shared = SlabPadManager()
 
     private let logger = Logger(subsystem: "SlabPad", category: "manager")
     
-    // main "on/off" state
-    @Published var isHapticsEnabled: Bool = true {
-        didSet {
-            // sync with system state
-            applyHapticsStateToSystem()
-        }
+    @Published private(set) var isHapticsEnabled: Bool?
+    @Published private(set) var isFocusActive = false
+    @Published private var hapticsIssue: HapticsManager.Issue?
+
+    private var manualHapticsEnabled: Bool?
+    private var hasReceivedFocusState = false
+    private var isDeviceRetryScheduled = false
+
+    var hapticsIssueKey: String? { hapticsIssue?.localizationKey }
+
+    private var shouldRetryDeviceDetection: Bool {
+        hapticsIssue == .deviceUnavailable || hapticsIssue == .actuatorUnavailable
     }
-    
-    // user prefs
+
+    var nextHapticsEnabled: Bool {
+        isHapticsEnabled.map { !$0 } ?? manualHapticsEnabled ?? true
+    }
+
     @AppStorage("disableOnLaunch") var disableOnLaunch = true
     @AppStorage("reEnableOnQuit") var reEnableOnQuit = true
     @AppStorage("invertClicks") var invertClicks = false
     @AppStorage("hasLaunchedBefore") var hasLaunchedBefore = false
-    
-    // focus state
-    @Published var isFocusActive: Bool = false {
-        didSet {
-            if oldValue && !isFocusActive {
-                isHapticsEnabled = true
-            }
-            applyHapticsStateToSystem()
-        }
-    }
-    
+
     // login item state
-    @Published var launchAtLogin: Bool
-    
-    @Published var isCheckingForUpdates: Bool = false
-    @Published var hasUpdateAvailable: Bool = false
-    @Published var latestReleaseURL: URL?
-    @Published var latestReleaseTag: String?
-    @Published var latestReleaseNotesMarkdown: String?
-    @Published var latestDownloadZipURL: URL?
-    @Published var hapticsIssueKey: String?
+    @Published private(set) var launchAtLogin: Bool
 
-    var processedReleaseNotes: String? {
-        guard let markdown = latestReleaseNotesMarkdown else { return nil }
-        
-        let normalized = markdown
-            .replacingOccurrences(of: "\r\n", with: "\n")
-            .replacingOccurrences(of: "\r", with: "\n")
-            
-        let lines = normalized.components(separatedBy: .newlines)
-        let headerRegex = try? NSRegularExpression(pattern: "^\\s*#{2,6}\\s*(changelog|what's new|whats new)\\s*:?(\\s*)$", options: [.caseInsensitive])
-        
-        var startIndex: Int?
-        if let headerRegex = headerRegex {
-            for (index, line) in lines.enumerated() {
-                let range = NSRange(line.startIndex..<line.endIndex, in: line)
-                if headerRegex.firstMatch(in: line, options: [], range: range) != nil {
-                    startIndex = index + 1
-                    break
-                }
-            }
-        }
+    @Published private(set) var isCheckingForUpdates = false
+    @Published private(set) var showsUpdateConfirmation = false
+    private var updateConfirmationTask: Task<Void, Never>?
+    @Published private(set) var availableUpdate: AvailableUpdate?
 
-        if let startIndex = startIndex, startIndex < lines.count {
-            let extracted = lines[startIndex...].joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-            return extracted.isEmpty ? normalized : extracted
-        }
-        
-        return normalized
-    }
-
-    var bulletLines: [String] {
-        guard let markdown = processedReleaseNotes else { return [] }
-        let lines = markdown.components(separatedBy: .newlines)
-        return lines.compactMap { line -> String? in
-            let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
-            if trimmed.hasPrefix("- ") { return String(trimmed.dropFirst(2)) }
-            if trimmed.hasPrefix("* ") { return String(trimmed.dropFirst(2)) }
-            if trimmed.hasPrefix("• ") { return String(trimmed.dropFirst(2)) }
-            return nil
-        }
-    }
+    var hasUpdateAvailable: Bool { availableUpdate != nil }
 
     var supportsLaunchAtLogin: Bool {
         if #available(macOS 13.0, *) {
@@ -138,27 +145,23 @@ final class SlabPadManager: ObservableObject {
     private init() {
         self.launchAtLogin = Self.readLaunchAtLogin()
         
-        // start from system setting
-        self.isHapticsEnabled = HapticsManager.shared.isEnabled()
         if disableOnLaunch {
-            isHapticsEnabled = false
+            manualHapticsEnabled = false
         }
-
-        // push initial state to system
         applyHapticsStateToSystem()
-        checkForUpdate()
-        
+        scheduleDeviceDetectionRetry()
+
         if #available(macOS 13.0, *) {
             Task {
                 let shouldSilence = (try? await SlabPadFocusFilter.current.silenceHaptics) ?? false
-                await MainActor.run {
-                    self.isFocusActive = shouldSilence
+                if !hasReceivedFocusState {
+                    setFocusActive(shouldSilence)
                 }
             }
         }
     }
     
-    var currentVersionString: String {
+    private var currentVersionString: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0"
     }
     
@@ -174,53 +177,47 @@ final class SlabPadManager: ObservableObject {
     }
     
     func setLaunchAtLogin(_ enabled: Bool) {
-        guard supportsLaunchAtLogin else {
+        guard #available(macOS 13.0, *) else {
             logger.info("Launch at Login requires macOS 13.0+")
             launchAtLogin = false
             return
         }
-        
-        if #available(macOS 13.0, *) {
-            let service = SMAppService.mainApp
-            do {
-                let currentlyEnabled = service.status == .enabled
-                guard enabled != currentlyEnabled else { return }
 
-                if enabled {
-                    try service.register()
-                } else {
-                    try service.unregister()
-                }
-                launchAtLogin = service.status == .enabled
-            } catch {
-                logger.error("Failed to update Launch at Login: \(String(describing: error))")
+        let service = SMAppService.mainApp
+        do {
+            let currentlyEnabled = service.status == .enabled
+            guard enabled != currentlyEnabled else { return }
+
+            if enabled {
+                try service.register()
+            } else {
+                try service.unregister()
             }
+            launchAtLogin = service.status == .enabled
+        } catch {
+            logger.error("Failed to update Launch at Login: \(String(describing: error))")
         }
     }
     
-    enum UpdateError: Error {
-        case invalidVersion
-        case invalidURL
-        case networkError(Error)
-        case apiError(String)
-        case decodingError(Error)
-    }
-    
-    func checkForUpdate(completion: ((Result<Bool, UpdateError>) -> Void)? = nil) {
-        guard let currentVersion = SemVer(currentVersionString) else {
-            completion?(.failure(.invalidVersion))
+    func checkForUpdate(completion: ((Result<Bool, Error>) -> Void)? = nil) {
+        guard !isCheckingForUpdates else { return }
+        guard let currentVersion = ReleaseVersion(currentVersionString) else {
+            completion?(.failure(UpdateCheckError(message: "Invalid installed version")))
             return
         }
+
         let timestamp = Int(Date().timeIntervalSince1970)
         guard let url = URL(string: "https://api.github.com/repos/shalamand3r/SlabPad/releases/latest?t=\(timestamp)") else {
-            completion?(.failure(.invalidURL))
+            completion?(.failure(UpdateCheckError(message: "Invalid update URL")))
             return
         }
 
+        updateConfirmationTask?.cancel()
+        showsUpdateConfirmation = false
         isCheckingForUpdates = true
         Task {
             defer { isCheckingForUpdates = false }
-            
+
             var request = URLRequest(url: url)
             request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
             request.setValue("SlabPad", forHTTPHeaderField: "User-Agent")
@@ -228,63 +225,116 @@ final class SlabPadManager: ObservableObject {
             do {
                 let (data, response) = try await URLSession.shared.data(for: request)
                 guard let http = response as? HTTPURLResponse else {
-                    completion?(.failure(.networkError(NSError(domain: "SlabPad", code: -1))))
-                    return
+                    throw URLError(.badServerResponse)
                 }
+
+                let decoder = JSONDecoder()
                 guard (200...299).contains(http.statusCode) else {
-                    let message: String
-                    if let apiError = try? JSONDecoder().decode(GitHubAPIError.self, from: data) {
-                        message = apiError.message
-                    } else if let body = String(data: data, encoding: .utf8)?
-                        .trimmingCharacters(in: .whitespacesAndNewlines),
-                              !body.isEmpty {
-                        message = String(body.prefix(300))
-                    } else {
-                        message = "HTTP \(http.statusCode)"
-                    }
-                    logger.error("Update check failed: \(message, privacy: .public)")
-                    completion?(.failure(.apiError(message)))
-                    return
+                    let apiMessage = (try? decoder.decode(GitHubAPIError.self, from: data))?.message
+                    let body = String(data: data, encoding: .utf8)?
+                        .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+                    let message = body.isEmpty ? "HTTP \(http.statusCode)" : String(body.prefix(300))
+                    throw UpdateCheckError(message: apiMessage ?? message)
                 }
 
-                do {
-                    let release = try JSONDecoder().decode(GitHubReleaseResponse.self, from: data)
-                    guard let latestVersion = SemVer(release.tagName) else {
-                        completion?(.failure(.decodingError(NSError(domain: "SlabPad", code: -2))))
-                        return
-                    }
-                    let isUpdateAvailable = latestVersion > currentVersion
-
-                    self.latestReleaseURL = release.htmlURL
-                    self.latestReleaseTag = release.tagName
-                    self.latestReleaseNotesMarkdown = release.body
-                    self.latestDownloadZipURL = Self.makeDownloadZipURL(tagName: release.tagName)
-                    self.hasUpdateAvailable = isUpdateAvailable
-                    completion?(.success(isUpdateAvailable))
-                } catch {
-                    logger.error("Update check failed: \(String(describing: error), privacy: .public)")
-                    completion?(.failure(.decodingError(error)))
+                let release = try decoder.decode(GitHubReleaseResponse.self, from: data)
+                let tag = release.tagName.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard let latestVersion = ReleaseVersion(tag) else {
+                    throw UpdateCheckError(message: "Invalid release version: \(tag)")
                 }
+
+                if latestVersion.isNewer(than: currentVersion) {
+                    availableUpdate = AvailableUpdate(
+                        versionText: tag.hasPrefix("v") ? tag : "v\(tag)",
+                        releaseURL: release.htmlURL,
+                        downloadURL: URL(string: "https://github.com/shalamand3r/SlabPad/releases/download/\(tag)/SlabPad.Universal.zip"),
+                        notes: ReleaseNotes(release.body)
+                    )
+                } else {
+                    availableUpdate = nil
+                    showsUpdateConfirmation = true
+                    updateConfirmationTask = Task { [weak self] in
+                        try? await Task.sleep(nanoseconds: 1_300_000_000)
+                        if !Task.isCancelled { self?.showsUpdateConfirmation = false }
+                    }
+                }
+
+                completion?(.success(hasUpdateAvailable))
             } catch {
-                logger.error("Update check failed: \(String(describing: error), privacy: .public)")
-                completion?(.failure(.networkError(error)))
+                logger.error("Update check failed: \(error.localizedDescription, privacy: .public)")
+                completion?(.failure(error))
             }
         }
     }
 
-    private static func makeDownloadZipURL(tagName: String) -> URL? {
-        let trimmed = tagName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        return URL(string: "https://github.com/shalamand3r/SlabPad/releases/download/\(trimmed)/SlabPad.Universal.zip")
-    }
-    
     func toggleHapticsEnabled() {
-        isHapticsEnabled.toggle()
+        guard !isFocusActive else { return }
+        if hapticsIssue == nil {
+            manualHapticsEnabled = nextHapticsEnabled
+        }
+        applyHapticsStateToSystem()
+    }
+
+    func setFocusActive(_ active: Bool) {
+        hasReceivedFocusState = true
+        if active != isFocusActive {
+            isFocusActive = active
+        } else if hapticsIssueKey == nil {
+            return
+        }
+        applyHapticsStateToSystem()
+    }
+
+    func retryDeviceDetectionIfNeeded() {
+        if shouldRetryDeviceDetection {
+            applyHapticsStateToSystem()
+        }
+    }
+
+    func scheduleDeviceDetectionRetry() {
+        guard shouldRetryDeviceDetection, !isDeviceRetryScheduled else { return }
+        isDeviceRetryScheduled = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.75) { [weak self] in
+            guard let self else { return }
+            isDeviceRetryScheduled = false
+            retryDeviceDetectionIfNeeded()
+        }
     }
 
     func applyHapticsStateToSystem() {
-        let targetState = isFocusActive ? false : isHapticsEnabled
-        let issue = HapticsManager.shared.setHaptics(to: targetState)
-        hapticsIssueKey = issue?.localizationKey
+        // If startup could not read the device, recover its current state before applying overrides.
+        if manualHapticsEnabled == nil {
+            let result = HapticsManager.shared.readHapticsState()
+            if case .success(let enabled) = result {
+                manualHapticsEnabled = enabled
+            }
+            if manualHapticsEnabled != true || !isFocusActive {
+                updateHapticsStatus(result)
+                return
+            }
+        }
+
+        let target = manualHapticsEnabled == true && !isFocusActive
+        updateHapticsStatus(HapticsManager.shared.setHaptics(to: target), target: target)
+    }
+
+    private func updateHapticsStatus(_ result: Result<Bool, HapticsManager.Issue>, target: Bool? = nil) {
+        let observed: Bool?
+        let issue: HapticsManager.Issue?
+        switch result {
+        case .success(let enabled):
+            observed = enabled
+            issue = target.map { $0 != enabled } == true ? .setFailed : nil
+        case .failure(let failure):
+            observed = nil
+            issue = failure
+        }
+
+        if isHapticsEnabled != observed {
+            isHapticsEnabled = observed
+        }
+        if hapticsIssue != issue {
+            hapticsIssue = issue
+        }
     }
 }
